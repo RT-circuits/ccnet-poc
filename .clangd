@@ -1,0 +1,10 @@
+CompileFlags:
+  Add:
+    - --target=arm-none-eabi
+    - -DSTM32G431xx
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Core/Inc
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Application/Inc
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Application/Tests
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Drivers/STM32G4xx_HAL_Driver/Inc
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Drivers/CMSIS/Include
+    - -I/Users/pdev/Dropbox/2. 3rd Party Work/1. Automation_Europe_bvba/1. CCNET Converter/4. Code/5. MCU/1. STM32 Workspace/100 G431CBT6 CCNET Converter/Drivers/CMSIS/Device/ST/STM32G4xx/Include
