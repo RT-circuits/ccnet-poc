@@ -30,7 +30,6 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 
 /* Exported variables --------------------------------------------------------*/
-extern uint8_t upstream_rx_flag;
 extern uint8_t downstream_rx_flag;
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -43,10 +42,16 @@ extern uint8_t downstream_rx_flag;
 void UART_RxCpltCallback(UART_HandleTypeDef *huart);
 
 /**
-  * @brief  Process received bytes (call from main loop)
-  * @retval None
+  * @brief  Check for upstream received data
+  * @retval uint8_t: 1 if data ready, 0 if no data
   */
-void UART_ProcessReceivedBytes(void);
+uint8_t UART_CheckForUpstreamData(void);
+
+/**
+  * @brief  Check for downstream received data
+  * @retval uint8_t: 1 if data ready, 0 if no data
+  */
+uint8_t UART_CheckForDownstreamData(void);
 
 /**
   * @brief  Initialize UART for message reception

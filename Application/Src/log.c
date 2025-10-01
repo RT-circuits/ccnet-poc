@@ -59,24 +59,22 @@ void LOG_Init(void)
 void LOG_SetLevel(log_level_t level)
 {
     current_log_level = level;
-    LOG_Info("Log level changed to %d", level);
+    LOG_Info("Log level changed");
 }
 
 /**
   * @brief  Log error message
-  * @param  format: format string
-  * @param  ...: variable arguments
+  * @param  message: message string
   * @retval None
   */
-void LOG_Error(const char* format, ...)
+void LOG_Error(const char* message)
 {
     if (!log_initialized) return;
     
     if (current_log_level >= LOG_LEVEL_ERROR)
     {
         LOG_PrintHeader(LOG_LEVEL_ERROR);
-        // For now, just send the format string (no printf support)
-        USB_TransmitString(format);
+        USB_TransmitString(message);
         USB_TransmitString("\r\n");
         log_counter++;
     }
@@ -84,16 +82,15 @@ void LOG_Error(const char* format, ...)
 
 /**
   * @brief  Log warning message
-  * @param  format: format string
-  * @param  ...: variable arguments
+  * @param  message: message string
   * @retval None
   */
-void LOG_Warn(const char* format, ...)
+void LOG_Warn(const char* message)
 {
     if (current_log_level >= LOG_LEVEL_WARN)
     {
         LOG_PrintHeader(LOG_LEVEL_WARN);
-        USB_TransmitString(format);
+        USB_TransmitString(message);
         USB_TransmitString("\r\n");
         log_counter++;
     }
@@ -110,7 +107,7 @@ void LOG_Proto(const message_t* msg)
     {
         LOG_PrintHeader(LOG_LEVEL_PROTO);
         
-        // Print protocol info
+        // Print protocol
         switch (msg->protocol)
         {
             case PROTO_ID003:
@@ -126,8 +123,23 @@ void LOG_Proto(const message_t* msg)
                 USB_TransmitString("UNKNOWN ");
                 break;
         }
-                
-        // Print all bytes of raw message data as hex (no truncation)
+        
+        // Print direction (TX/RX)
+        if (msg->direction == MSG_DIR_TX)
+        {
+            USB_TransmitString("TX ");
+        }
+        else
+        {
+            USB_TransmitString("RX ");
+        }
+        
+        // Print opcode ASCII name
+        const char* opcode_ascii = MESSAGE_GetOpcodeASCII(msg);
+        USB_TransmitString(opcode_ascii);
+        USB_TransmitString(" ");
+        
+        // Print raw bytes as hex
         char hex_chars[] = "0123456789ABCDEF";
         for (uint8_t i = 0; i < msg->length; i++)
         {
@@ -145,18 +157,17 @@ void LOG_Proto(const message_t* msg)
 
 /**
   * @brief  Log info message
-  * @param  format: format string
-  * @param  ...: variable arguments
+  * @param  message: message string
   * @retval None
   */
-void LOG_Info(const char* format, ...)
+void LOG_Info(const char* message)
 {
     if (!log_initialized) return;
     
     if (current_log_level >= LOG_LEVEL_INFO)
     {
         LOG_PrintHeader(LOG_LEVEL_INFO);
-        USB_TransmitString(format);
+        USB_TransmitString(message);
         USB_TransmitString("\r\n");
         log_counter++;
     }
@@ -164,16 +175,15 @@ void LOG_Info(const char* format, ...)
 
 /**
   * @brief  Log debug message
-  * @param  format: format string
-  * @param  ...: variable arguments
+  * @param  message: message string
   * @retval None
   */
-void LOG_Debug(const char* format, ...)
+void LOG_Debug(const char* message)
 {
     if (current_log_level >= LOG_LEVEL_DEBUG)
     {
         LOG_PrintHeader(LOG_LEVEL_DEBUG);
-        USB_TransmitString(format);
+        USB_TransmitString(message);
         USB_TransmitString("\r\n");
         log_counter++;
     }
@@ -181,16 +191,15 @@ void LOG_Debug(const char* format, ...)
 
 /**
   * @brief  Log verbose message
-  * @param  format: format string
-  * @param  ...: variable arguments
+  * @param  message: message string
   * @retval None
   */
-void LOG_Verbose(const char* format, ...)
+void LOG_Verbose(const char* message)
 {
     if (current_log_level >= LOG_LEVEL_VERBOSE)
     {
         LOG_PrintHeader(LOG_LEVEL_VERBOSE);
-        USB_TransmitString(format);
+        USB_TransmitString(message);
         USB_TransmitString("\r\n");
         log_counter++;
     }
@@ -225,22 +234,7 @@ static void LOG_PrintHeader(log_level_t level)
   */
 static void LOG_PrintTimestamp(void)
 {
-    uint32_t tick = HAL_GetTick();
-    
-    // Simple timestamp format: [TICK]
-    USB_TransmitString("[");
-    
-    // Simple tick display
-    if (tick < 10) USB_TransmitString("00");
-    else if (tick < 100) USB_TransmitString("0");
-    else if (tick < 1000) USB_TransmitString("1");
-    else if (tick < 2000) USB_TransmitString("2");
-    else if (tick < 3000) USB_TransmitString("3");
-    else if (tick < 4000) USB_TransmitString("4");
-    else if (tick < 5000) USB_TransmitString("5");
-    else USB_TransmitString(">5");
-    
-    USB_TransmitString("] ");
+    // No timestamp - removed numbers from logging
 }
 
 /**

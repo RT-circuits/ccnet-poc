@@ -101,7 +101,7 @@ void PROTO_CONVERTER_Test_SendID003Message(void)
     uint8_t id003_opcode = PROTO_CONVERTER_MapCCNETToID003(ccnet_opcode);
     
     /* Create ID003 message */
-    MESSAGE_Init(&id003_request_msg, PROTO_ID003, id003_opcode);
+    MESSAGE_Init(&id003_request_msg, PROTO_ID003, MSG_DIR_TX, id003_opcode);
     MESSAGE_SetData(&id003_request_msg, NULL, 0);
     MESSAGE_Construct(&id003_request_msg);
     
@@ -136,7 +136,7 @@ void PROTO_CONVERTER_Test_ReceiveID003Response(void)
     uint8_t id003_response_raw[] = {0xFC, 0x05, 0x11, 0x27, 0x56}; /* FC 05 11 27 56 */
     
     /* Parse ID003 response */
-    MESSAGE_Init(&received_id003_response_msg, PROTO_ID003, id003_response_raw[2]);
+    MESSAGE_Init(&received_id003_response_msg, PROTO_ID003, MSG_DIR_RX, id003_response_raw[2]);
     MESSAGE_SetData(&received_id003_response_msg, NULL, 0);
     
     /* Copy raw response */
@@ -166,7 +166,7 @@ void PROTO_CONVERTER_Test_SendCCNETResponse(void)
     uint8_t ccnet_response_opcode = PROTO_CONVERTER_MapID003ToCCNET(test_received_id003_response);
     
     /* Create CCNET response message */
-    MESSAGE_Init(&ccnet_response_msg, PROTO_CCNET, ccnet_response_opcode);
+    MESSAGE_Init(&ccnet_response_msg, PROTO_CCNET, MSG_DIR_RX, ccnet_response_opcode);
     MESSAGE_SetData(&ccnet_response_msg, NULL, 0);
     MESSAGE_Construct(&ccnet_response_msg);
     
@@ -199,7 +199,7 @@ static void PROTO_CONVERTER_ParseCCNETMessage(const uint8_t* raw_data, uint8_t l
     /* CCNET format: [0x02][0x03][length][opcode][data][crc_lsb][crc_msb] */
     if (length >= 4)
     {
-        MESSAGE_Init(msg, PROTO_CCNET, raw_data[3]); /* opcode is at index 3 */
+        MESSAGE_Init(msg, PROTO_CCNET, MSG_DIR_RX, raw_data[3]); /* opcode is at index 3 */
         
         /* Copy raw data */
         for (uint8_t i = 0; i < length; i++)

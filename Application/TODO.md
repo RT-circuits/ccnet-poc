@@ -210,3 +210,26 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - log_proto the received bytes
 - verify it parses correctly as raw data in message
 
+### feature: parse uart received message
+- uart.c receives data in parallel on two interfaces. If the data length byte is correct and timing constraints are met it is stored in messate_t.raw. Not more is done to it so far
+- add receiving uart data in app.c main loop
+- flag when .raw data is received
+- parse .raw into a message. Check CRC, extract opcode and data
+- add ascii of opcode to message for logging/debugging. See proto.h. Every protocol has its own opcodes. Also, make distinction between transmitting and receiving opcodes
+- return state of the message in main loop (logical states: msg_ok, msg_unknown_opcode, msg_data_missing_for_opcode, msg_crc_wrong)
+- log_warn if not msg_ok
+- log_proto of opcode and raw message bytes in one
+
+notes:
+- crc validate function verified
+
+# Tests
+### Receive CCNET message at uart1:
+Test Validation Points
+✅ Protocol Detection: Correctly identifies CCNET (0x02 0x03) headers
+✅ Direction Detection: Properly determines TX vs RX based on opcode
+✅ Opcode Parsing: Validates known CCNET opcodes
+✅ ASCII Conversion: Shows human-readable opcode names
+✅ CRC Validation: Uses existing CRC validation system
+✅ Error Handling: Comprehensive error reporting for all failure modes
+✅ Statistics Tracking: Real-time success/failure monitoring

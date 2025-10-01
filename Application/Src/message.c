@@ -136,47 +136,32 @@ void MESSAGE_Construct(message_t* msg)
 }
 
 /**
-  * @brief  Parse raw UART data into message structure
-  * @param  msg: pointer to message structure to populate
-  * @param  raw_data: pointer to raw UART data
-  * @param  raw_length: length of raw data
-  * @retval message_result_t: parsing result status
+  * @brief  Parse raw UART data and populate message structure
+  * @param  msg: pointer to message structure containing raw data (input/output)
+  * @note   Populates: msg->protocol, msg->opcode, msg->data[], msg->data_length
+  *         Direction is already set during message initialization
+  * @retval message_parse_result_t: parsing result status
   */
-message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_length)
+message_parse_result_t MESSAGE_Parse(message_t* msg)
 {
     uint16_t pos = 0;
     uint8_t header_length = 0;
     uint8_t expected_length = 0;
     
     /* Validate input parameters */
-    if (msg == NULL || raw_data == NULL || raw_length == 0)
+    if (msg == NULL || msg->length == 0 || msg->length > 255)
     {
         return MSG_PARSE_ERROR;
     }
     
-    /* Clear message structure */
-    MESSAGE_Init(msg, PROTO_CCNET, MSG_DIR_RX, 0); /* Default protocol, will be set below */
-    
-    /* Copy raw data to message */
-    if (raw_length > 256)
-    {
-        return MSG_INVALID_LENGTH;
-    }
-    
-    for (uint16_t i = 0; i < raw_length; i++)
-    {
-        msg->raw[i] = raw_data[i];
-    }
-    msg->length = raw_length;
-    
     /* Detect protocol and validate header */
-    if (raw_length >= 2 && raw_data[0] == 0x02 && raw_data[1] == 0x03)
+    if (msg->length >= 2 && msg->raw[0] == 0x02 && msg->raw[1] == 0x03)
     {
         msg->protocol = PROTO_CCNET;
         header_length = 2;
         pos = 2;
     }
-    else if (raw_length >= 1 && raw_data[0] == 0xFC)
+    else if (msg->length >= 1 && msg->raw[0] == 0xFC)
     {
         msg->protocol = PROTO_ID003;
         header_length = 1;
@@ -188,93 +173,27 @@ message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_l
     }
     
     /* Check minimum message length */
-    if (raw_length < header_length + 3) /* header + length + opcode + CRC */
+    if (msg->length < header_length + 3) /* header + length + opcode + CRC */
     {
         return MSG_INVALID_LENGTH;
     }
     
     /* Extract length field */
-    expected_length = raw_data[pos++];
+    expected_length = msg->raw[pos++];
     
     /* Validate length field */
-    if (expected_length != raw_length)
+    if (expected_length != msg->length)
     {
         return MSG_INVALID_LENGTH;
     }
     
     /* Extract opcode */
-    msg->opcode = raw_data[pos++];
+    msg->opcode = msg->raw[pos++];
     
-    /* Determine message direction based on protocol and opcode */
-    if (msg->protocol == PROTO_CCNET)
-    {
-        /* CCNET: Check if it's a transmit command or receive status */
-        switch (msg->opcode)
-        {
-            /* CCNET Transmit Commands */
-            case 0x00: /* CCNET_ACK */
-            case 0xFF: /* CCNET_NAK */
-            case 0x30: /* CCNET_RESET */
-            case 0x31: /* CCNET_STATUS_REQUEST */
-            case 0x32: /* CCNET_SET_SECURITY */
-            case 0x33: /* CCNET_POLL */
-            case 0x34: /* CCNET_ENABLE_BILL_TYPES */
-            case 0x35: /* CCNET_STACK */
-            case 0x36: /* CCNET_RETURN */
-            case 0x37: /* CCNET_IDENTIFICATION */
-            case 0x38: /* CCNET_HOLD */
-            case 0x39: /* CCNET_SET_BAR_PARAMETERS */
-            case 0x41: /* CCNET_BILL_TABLE */
-            case 0x60: /* CCNET_REQUEST_STATISTICS */
-                msg->direction = MSG_DIR_TX;
-                break;
-            
-            /* CCNET Receive Status Responses */
-            default:
-                msg->direction = MSG_DIR_RX;
-                break;
-        }
-    }
-    else if (msg->protocol == PROTO_ID003)
-    {
-        /* ID003: Check if it's a transmit command or receive status */
-        switch (msg->opcode)
-        {
-            /* ID003 Transmit Commands */
-            case 0x11: /* ID003_STATUS_REQ */
-            case 0x40: /* ID003_RESET */
-            case 0x41: /* ID003_STACK_1 */
-            case 0x42: /* ID003_STACK_2 */
-            case 0x43: /* ID003_RETURN */
-            case 0x44: /* ID003_HOLD */
-            case 0x45: /* ID003_WAIT */
-            case 0xC0: /* ID003_ENABLE */
-            case 0xC1: /* ID003_SECURITY */
-            case 0xC2: /* ID003_COMM_MODE */
-            case 0xC3: /* ID003_INHIBIT */
-            case 0xC4: /* ID003_DIRECTION */
-            case 0xC5: /* ID003_OPT_FUNC */
-            case 0x80: /* ID003_ENABLE_REQ */
-            case 0x81: /* ID003_SECURITY_REQ */
-            case 0x82: /* ID003_COMM_MODE_REQ */
-            case 0x83: /* ID003_INHIBIT_REQ */
-            case 0x84: /* ID003_DIRECTION_REQ */
-            case 0x85: /* ID003_OPT_FUNC_REQ */
-            case 0x88: /* ID003_VERSION_REQ */
-            case 0x89: /* ID003_BOOT_VERSION_REQ */
-            case 0x8A: /* ID003_CURRENCY_ASSIGN_REQ */
-                msg->direction = MSG_DIR_TX;
-                break;
-            
-            /* ID003 Receive Status Responses */
-            default:
-                msg->direction = MSG_DIR_RX;
-                break;
-        }
-    }
+    /* Direction is already set when message is created - no need to detect it here */
     
     /* Validate opcode with context */
-    message_result_t opcode_result = MESSAGE_ValidateOpcode(msg->protocol, msg->direction, msg->opcode);
+    message_parse_result_t opcode_result = MESSAGE_ValidateOpcode(msg);
     if (opcode_result != MSG_OK)
     {
         return opcode_result;
@@ -282,12 +201,12 @@ message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_l
     
     /* Calculate data length */
     uint16_t crc_length = 2; /* CRC is 2 bytes */
-    if (pos + crc_length > raw_length)
+    if (pos + crc_length > msg->length)
     {
         return MSG_INVALID_LENGTH;
     }
     
-    msg->data_length = raw_length - pos - crc_length;
+    msg->data_length = msg->length - pos - crc_length;
     
     /* Extract data payload */
     if (msg->data_length > 250)
@@ -297,13 +216,13 @@ message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_l
     
     for (uint8_t i = 0; i < msg->data_length; i++)
     {
-        msg->data[i] = raw_data[pos++];
+        msg->data[i] = msg->raw[pos++];
     }
     
     /* Validate CRC */
     if (CRC_Validate(msg) != CRC_OK)
     {
-        return MSG_CRC_WRONG;
+        return MSG_CRC_INVALID;
     }
     
     return MSG_OK;
@@ -311,19 +230,17 @@ message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_l
 
 /**
   * @brief  Get ASCII representation of opcode for logging
-  * @param  protocol: protocol type
-  * @param  direction: message direction (TX/RX)
-  * @param  opcode: opcode value
+  * @param  msg: pointer to message structure containing protocol, direction, and opcode
   * @retval const char*: ASCII string representation
   */
-const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t direction, uint8_t opcode)
+const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
 {
-    if (protocol == PROTO_CCNET)
+    if (msg->protocol == PROTO_CCNET)
     {
-        if (direction == MSG_DIR_TX)
+        if (msg->direction == MSG_DIR_TX)
         {
             /* CCNET Transmit Commands */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x00: return "CCNET_ACK";
                 case 0xFF: return "CCNET_NAK";
@@ -345,7 +262,7 @@ const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t di
         else
         {
             /* CCNET Receive Status Responses */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x10: return "CCNET_STATUS_POWER_UP";
                 case 0x11: return "CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR";
@@ -373,12 +290,12 @@ const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t di
             }
         }
     }
-    else if (protocol == PROTO_ID003)
+    else if (msg->protocol == PROTO_ID003)
     {
-        if (direction == MSG_DIR_TX)
+        if (msg->direction == MSG_DIR_TX)
         {
             /* ID003 Transmit Commands */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x11: return "ID003_STATUS_REQ";
                 case 0x40: return "ID003_RESET";
@@ -408,7 +325,7 @@ const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t di
         else
         {
             /* ID003 Receive Status Responses */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x50: return "ID003_STATUS_ACK";
                 case 0x11: return "ID003_STATUS_IDLING";
@@ -444,19 +361,17 @@ const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t di
 
 /**
   * @brief  Validate opcode for known commands
-  * @param  protocol: protocol type
-  * @param  direction: message direction (TX/RX)
-  * @param  opcode: opcode value to validate
-  * @retval message_result_t: validation result
+  * @param  msg: pointer to message structure containing protocol, direction, and opcode
+  * @retval message_parse_result_t: validation result
   */
-message_result_t MESSAGE_ValidateOpcode(proto_name_t protocol, message_direction_t direction, uint8_t opcode)
+message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg)
 {
-    if (protocol == PROTO_CCNET)
+    if (msg->protocol == PROTO_CCNET)
     {
-        if (direction == MSG_DIR_TX)
+        if (msg->direction == MSG_DIR_TX)
         {
             /* CCNET Transmit Commands */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x00: /* CCNET_ACK */
                 case 0xFF: /* CCNET_NAK */
@@ -480,7 +395,7 @@ message_result_t MESSAGE_ValidateOpcode(proto_name_t protocol, message_direction
         else
         {
             /* CCNET Receive Status Responses */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x10: /* CCNET_STATUS_POWER_UP */
                 case 0x11: /* CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR */
@@ -510,12 +425,12 @@ message_result_t MESSAGE_ValidateOpcode(proto_name_t protocol, message_direction
             }
         }
     }
-    else if (protocol == PROTO_ID003)
+    else if (msg->protocol == PROTO_ID003)
     {
-        if (direction == MSG_DIR_TX)
+        if (msg->direction == MSG_DIR_TX)
         {
             /* ID003 Transmit Commands */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x11: /* ID003_STATUS_REQ */
                 case 0x40: /* ID003_RESET */
@@ -547,7 +462,7 @@ message_result_t MESSAGE_ValidateOpcode(proto_name_t protocol, message_direction
         else
         {
             /* ID003 Receive Status Responses */
-            switch (opcode)
+            switch (msg->opcode)
             {
                 case 0x50: /* ID003_STATUS_ACK */
                 case 0x11: /* ID003_STATUS_IDLING */

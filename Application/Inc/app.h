@@ -22,6 +22,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "proto.h"
+#include "message.h"
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -99,6 +100,10 @@ extern UART_HandleTypeDef huart3;
 /* Interface objects */
 extern interface_config_t if_upstream;    /* Upstream interface (CCNET) */
 extern interface_config_t if_downstream;  /* Downstream interface (ID003) */
+
+/* Message objects */
+extern message_t upstream_msg;    /* CCNET messages from upstream */
+extern message_t downstream_msg;  /* ID003 messages from downstream */
 
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_Init(void);

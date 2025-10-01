@@ -88,24 +88,24 @@ void MESSAGE_Test_A_BasicConstruction(void)
     uint8_t result;
     
     // Test ID003 POLL request (empty data)
-    MESSAGE_Init(&msg, PROTO_ID003, OPCODE_POLL);
+    MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX, ID003_STATUS_REQ);
     MESSAGE_SetData(&msg, NULL, 0);
     MESSAGE_Construct(&msg);
-    result = (msg.protocol == PROTO_ID003 && msg.opcode == OPCODE_POLL && msg.length > 0);
+    result = (msg.protocol == PROTO_ID003 && msg.opcode == ID003_STATUS_REQ && msg.length > 0);
     // Expected: result = 1 (valid message construction)
     
     // Test CCNET status response (empty data)
-    MESSAGE_Init(&msg, PROTO_CCNET, CCNET_STATUS_IDLING);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_RX, CCNET_STATUS_IDLING);
     MESSAGE_SetData(&msg, NULL, 0);
     MESSAGE_Construct(&msg);
     result = (msg.protocol == PROTO_CCNET && msg.opcode == CCNET_STATUS_IDLING && msg.length > 0);
     // Expected: result = 1 (valid message construction)
     
     // Test CCNET reset command (empty data)
-    MESSAGE_Init(&msg, PROTO_CCNET, OPCODE_RESET);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, CCNET_RESET);
     MESSAGE_SetData(&msg, NULL, 0);
     MESSAGE_Construct(&msg);
-    result = (msg.protocol == PROTO_CCNET && msg.opcode == OPCODE_RESET && msg.length > 0);
+    result = (msg.protocol == PROTO_CCNET && msg.opcode == CCNET_RESET && msg.length > 0);
     // Expected: result = 1 (valid message construction)
 }
 
@@ -119,21 +119,21 @@ void MESSAGE_Test_B_DataPayload(void)
     uint8_t result;
     
     // Test CCNET message with short payload
-    MESSAGE_Init(&msg, PROTO_CCNET, OPCODE_RESET);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, CCNET_RESET);
     MESSAGE_SetData(&msg, (uint8_t*)test_payload_short, sizeof(test_payload_short));
     MESSAGE_Construct(&msg);
     result = (msg.protocol == PROTO_CCNET && msg.data_length == sizeof(test_payload_short) && msg.length > 0);
     // Expected: result = 1 (valid message with data)
     
     // Test CCNET message with long payload
-    MESSAGE_Init(&msg, PROTO_CCNET, CCNET_ENABLE_BILL_TYPES);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, CCNET_ENABLE_BILL_TYPES);
     MESSAGE_SetData(&msg, (uint8_t*)test_payload_long, sizeof(test_payload_long));
     MESSAGE_Construct(&msg);
     result = (msg.protocol == PROTO_CCNET && msg.data_length == sizeof(test_payload_long) && msg.length > 0);
     // Expected: result = 1 (valid message with data)
     
     // Test ID003 message with bill types data
-    MESSAGE_Init(&msg, PROTO_ID003, OPCODE_GET_BILL_TYPES);
+    MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX, ID003_STATUS_REQ);
     MESSAGE_SetData(&msg, (uint8_t*)test_bill_types, sizeof(test_bill_types));
     MESSAGE_Construct(&msg);
     result = (msg.protocol == PROTO_ID003 && msg.data_length == sizeof(test_bill_types) && msg.length > 0);
@@ -150,21 +150,21 @@ void MESSAGE_Test_C_ProtocolSpecific(void)
     uint8_t result;
     
     // Test CCNET protocol header format
-    MESSAGE_Init(&msg, PROTO_CCNET, CCNET_STATUS_REQUEST);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, CCNET_STATUS_REQUEST);
     MESSAGE_SetData(&msg, NULL, 0);
     MESSAGE_Construct(&msg);
     result = (msg.raw[0] == 0x02 && msg.raw[1] == 0x03 && msg.protocol == PROTO_CCNET);
     // Expected: result = 1 (correct CCNET header format)
     
     // Test ID003 protocol header format
-    MESSAGE_Init(&msg, PROTO_ID003, ID003_STATUS_REQ);
+    MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX, ID003_STATUS_REQ);
     MESSAGE_SetData(&msg, NULL, 0);
     MESSAGE_Construct(&msg);
     result = (msg.raw[0] == 0xFC && msg.protocol == PROTO_ID003);
     // Expected: result = 1 (correct ID003 header format)
     
     // Test message length calculation
-    MESSAGE_Init(&msg, PROTO_CCNET, CCNET_POLL);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, CCNET_POLL);
     MESSAGE_SetData(&msg, (uint8_t*)test_payload_short, sizeof(test_payload_short));
     MESSAGE_Construct(&msg);
     result = (msg.length == (2 + 1 + msg.data_length + 2)); // Header + opcode + data + CRC

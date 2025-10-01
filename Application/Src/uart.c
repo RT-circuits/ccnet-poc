@@ -42,7 +42,7 @@ typedef struct {
     uint8_t length;
     uint32_t last_tick;
     uint8_t rx_byte;
-    uint8_t message_ready;         /* Flag for main loop to process completed message */
+    uint8_t data_ready;            /* Flag for main loop to process received data */
     interface_config_t* interface; /* Reference to interface configuration */
     message_t* message;            /* Message structure to populate */
 } UART_Interface_t;
@@ -52,7 +52,6 @@ UART_Interface_t uart_intf1;
 UART_Interface_t uart_intf2;
 
 /* Exported variables --------------------------------------------------------*/
-uint8_t upstream_rx_flag = 0;
 uint8_t downstream_rx_flag = 0;
 
 /* Exported functions --------------------------------------------------------*/
@@ -141,7 +140,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
                         intf->message->raw[i] = intf->rx_buffer[i];
                     }
                 }
-                intf->message_ready = 1;
+                intf->data_ready = 1;
                 intf->state = UART_STATE_WAIT_SYNC1;
                 intf->rx_index = 0;
             }
@@ -163,7 +162,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
                     intf->message->raw[i] = intf->rx_buffer[i];
                 }
             }
-            intf->message_ready = 1;
+            intf->data_ready = 1;
             intf->state = UART_STATE_WAIT_SYNC1;
             intf->rx_index = 0;
         }
@@ -175,23 +174,32 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 /**
-  * @brief  Process received messages (call from main loop)
-  * @retval None
+  * @brief  Check for upstream received data
+  * @retval uint8_t: 1 if data ready, 0 if no data
   */
-void UART_ProcessReceivedBytes(void)
+uint8_t UART_CheckForUpstreamData(void)
 {
     /* Process upstream messages */
-    if (uart_intf1.message_ready) {
-        uart_intf1.message_ready = 0;
-        upstream_rx_flag = 1;
+    if (uart_intf1.data_ready) {
+        uart_intf1.data_ready = 0;
+        return 1; /* Data ready */
     }
-    
+    return 0; /* No data */
+}
+
+/**
+  * @brief  Check for downstream received data
+  * @retval uint8_t: 1 if data ready, 0 if no data
+  */
+uint8_t UART_CheckForDownstreamData(void)
+{
     /* Process downstream messages */
-    if (uart_intf2.message_ready) {
-        uart_intf2.message_ready = 0;
-        downstream_rx_flag = 1;
-        LOG_Info("UART2 message received");
+    if (uart_intf2.data_ready) {
+        uart_intf2.data_ready = 0;
+        LOG_Info("UART2 data received");
+        return 1; /* Data ready */
     }
+    return 0; /* No data */
 }
 
 /**
@@ -220,7 +228,7 @@ void UART_Init(interface_config_t* interface, message_t* message)
     intf->sync_bytes[1] = interface->datalink.sync_byte2;
     intf->state = UART_STATE_WAIT_SYNC1;
     intf->rx_index = 0;
-    intf->message_ready = 0;
+    intf->data_ready = 0;
     intf->last_tick = HAL_GetTick();
     intf->interface = interface;
     intf->message = message;

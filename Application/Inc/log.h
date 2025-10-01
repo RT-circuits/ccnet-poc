@@ -47,12 +47,12 @@ typedef enum
 /* Exported functions prototypes ---------------------------------------------*/
 void LOG_Init(void);
 void LOG_SetLevel(log_level_t level);
-void LOG_Error(const char* format, ...);
-void LOG_Warn(const char* format, ...);
+void LOG_Error(const char* message);
+void LOG_Warn(const char* message);
 void LOG_Proto(const message_t* msg);
-void LOG_Info(const char* format, ...);
-void LOG_Debug(const char* format, ...);
-void LOG_Verbose(const char* format, ...);
+void LOG_Info(const char* message);
+void LOG_Debug(const char* message);
+void LOG_Verbose(const char* message);
 void LOG_Raw(const char* str);
 
 #ifdef __cplusplus

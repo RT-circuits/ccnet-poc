@@ -109,7 +109,7 @@ void CONFIG_LoadFromNVM(void)
     }
     else
     {
-        LOG_Warn("Failed to load configuration from NVM (result: %d), using defaults", result);
+        LOG_Warn("Failed to load configuration from NVM, using defaults");
     }
 }
 
@@ -135,13 +135,13 @@ void CONFIG_SaveToNVM(void)
         }
         else
         {
-            LOG_Error("Failed to save configuration to NVM: %d", result);
+            LOG_Error("Failed to save configuration to NVM");
             CONFIG_BufferWrite("Error: Failed to save configuration!\r\n");
         }
     }
     else
     {
-        LOG_Error("Failed to serialize configuration: %d", result);
+        LOG_Error("Failed to serialize configuration");
         CONFIG_BufferWrite("Error: Failed to serialize configuration!\r\n");
     }
     
@@ -1108,7 +1108,7 @@ static nvm_result_t CONFIG_DeserializeFromBuffer(const uint8_t* buffer, uint32_t
     
     if (buffer_size != expected_size)
     {
-        LOG_Error("Buffer size %lu does not match config size %lu", buffer_size, expected_size);
+        LOG_Error("Buffer size does not match config size");
         return NVM_INVALID_PARAM;
     }
     

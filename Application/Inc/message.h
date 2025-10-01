@@ -39,14 +39,15 @@ typedef enum
   */
 typedef enum
 {
-    MSG_OK = 0,
+    MSG_NO_MESSAGE = 0,
+    MSG_OK,
     MSG_UNKNOWN_OPCODE,
     MSG_DATA_MISSING_FOR_OPCODE,
-    MSG_CRC_WRONG,
+    MSG_CRC_INVALID,
     MSG_INVALID_LENGTH,
     MSG_INVALID_HEADER,
     MSG_PARSE_ERROR
-} message_result_t;
+} message_parse_result_t;
 
 /**
   * @brief  Message structure for protocol handling
@@ -71,9 +72,9 @@ typedef struct {
 void MESSAGE_Construct(message_t* msg);
 void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t direction, uint8_t opcode);
 void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length);
-message_result_t MESSAGE_Parse(message_t* msg, uint8_t* raw_data, uint16_t raw_length);
-const char* MESSAGE_GetOpcodeASCII(proto_name_t protocol, message_direction_t direction, uint8_t opcode);
-message_result_t MESSAGE_ValidateOpcode(proto_name_t protocol, message_direction_t direction, uint8_t opcode);
+message_parse_result_t MESSAGE_Parse(message_t* msg);
+const char* MESSAGE_GetOpcodeASCII(const message_t* msg);
+message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg);
 
 #ifdef __cplusplus
 }

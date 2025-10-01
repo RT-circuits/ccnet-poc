@@ -76,7 +76,7 @@ static nvm_result_t NVM_EraseFlashPage(uint32_t address)
     /* Verify address is page-aligned */
     if ((address % NVM_PAGE_SIZE) != 0)
     {
-        LOG_Error("Flash address not page-aligned: 0x%08X", address);
+        LOG_Error("Flash address not page-aligned");
         return NVM_INVALID_PARAM;
     }
     
@@ -102,7 +102,7 @@ static nvm_result_t NVM_EraseFlashPage(uint32_t address)
     
     if (status != HAL_OK)
     {
-        LOG_Error("Flash erase failed: page %lu, error 0x%08X", page_number, page_error);
+        LOG_Error("Flash erase failed");
         return NVM_ERASE_FAILED;
     }
     
@@ -140,7 +140,7 @@ static nvm_result_t NVM_WriteFlash(uint32_t address, const uint8_t* data, uint32
         if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, dest_addr, *src) != HAL_OK)
         {
             NVM_LockFlash();
-            LOG_Error("Flash write failed at address 0x%08X", dest_addr);
+            LOG_Error("Flash write failed");
             return NVM_WRITE_FAILED;
         }
         dest_addr += 8;
@@ -243,7 +243,7 @@ nvm_result_t NVM_ReadConfigData(uint8_t* data, uint32_t max_size, uint32_t* actu
     result = NVM_ValidateStorage(selected_storage);
     if (result != NVM_OK)
     {
-        LOG_Error("Data validation failed for bank 0x%08X", selected_bank);
+        LOG_Error("Data validation failed for bank");
         
         /* Try the other bank if available */
         if (selected_bank == FLASH_CONFIG_BANK1 && bank2_result == NVM_OK)
@@ -269,7 +269,7 @@ nvm_result_t NVM_ReadConfigData(uint8_t* data, uint32_t max_size, uint32_t* actu
     /* Check if data fits in provided buffer */
     if (selected_storage->data_size > max_size)
     {
-        LOG_Error("Data size %lu exceeds buffer size %lu", selected_storage->data_size, max_size);
+        LOG_Error("Data size exceeds buffer size");
         return NVM_INVALID_PARAM;
     }
     
@@ -301,7 +301,7 @@ nvm_result_t NVM_WriteConfigData(const uint8_t* data, uint32_t data_size)
     
     if (data_size > 512)
     {
-        LOG_Error("Data size %lu exceeds maximum size 512", data_size);
+        LOG_Error("Data size exceeds maximum size");
         return NVM_INVALID_PARAM;
     }
     
@@ -331,7 +331,7 @@ nvm_result_t NVM_WriteConfigData(const uint8_t* data, uint32_t data_size)
     result = NVM_EraseFlashPage(target_bank);
     if (result != NVM_OK)
     {
-        LOG_Error("Failed to erase target bank 0x%08X", target_bank);
+        LOG_Error("Failed to erase target bank");
         return result;
     }
     
@@ -339,7 +339,7 @@ nvm_result_t NVM_WriteConfigData(const uint8_t* data, uint32_t data_size)
     result = NVM_WriteDataToBank(target_bank, data, data_size, new_sequence);
     if (result != NVM_OK)
     {
-        LOG_Error("Failed to write data to bank 0x%08X", target_bank);
+        LOG_Error("Failed to write data to bank");
         return result;
     }
     
@@ -434,21 +434,21 @@ static nvm_result_t NVM_ValidateStorage(const nvm_data_storage_t* storage)
     /* Check magic number */
     if (storage->magic != CONFIG_MAGIC_NUMBER)
     {
-        LOG_Error("Invalid magic number: 0x%08X", storage->magic);
+        LOG_Error("Invalid magic number");
         return NVM_CORRUPTED_DATA;
     }
     
     /* Check version */
     if (storage->version != CONFIG_VERSION)
     {
-        LOG_Error("Invalid version: %lu", storage->version);
+        LOG_Error("Invalid version");
         return NVM_CORRUPTED_DATA;
     }
     
     /* Check data size */
     if (storage->data_size == 0 || storage->data_size > 512)
     {
-        LOG_Error("Invalid data size: %lu", storage->data_size);
+        LOG_Error("Invalid data size");
         return NVM_CORRUPTED_DATA;
     }
     
@@ -456,7 +456,7 @@ static nvm_result_t NVM_ValidateStorage(const nvm_data_storage_t* storage)
     uint16_t calculated_crc = NVM_CalculateCRC16(storage->data, storage->data_size);
     if (calculated_crc != storage->crc16)
     {
-        LOG_Error("CRC mismatch: calculated 0x%04X, stored 0x%04X", calculated_crc, storage->crc16);
+        LOG_Error("CRC mismatch");
         return NVM_CRC_ERROR;
     }
     
