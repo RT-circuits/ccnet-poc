@@ -16,6 +16,7 @@
 #include "log.h"
 #include "usb.h"
 
+
 /* Private variables ---------------------------------------------------------*/
 static log_level_t current_log_level = LOG_LEVEL_INFO;
 static uint32_t log_counter = 0;
@@ -41,14 +42,6 @@ void LOG_Init(void)
     // Wait a bit more to ensure USB is fully ready
     HAL_Delay(100);
     
-    // Send startup message - use simple approach
-    USB_TransmitString("\r\n=== LOG MODULE INITIALIZED ===\r\n");
-    USB_TransmitString("Log level: INFO\r\n");
-    USB_TransmitString("Output: USB VCP\r\n");
-    USB_TransmitString("================================\r\n\r\n");
-    
-    // Test log immediately
-    LOG_Info("Log module test message");
 }
 
 /**
@@ -61,6 +54,23 @@ void LOG_SetLevel(log_level_t level)
     current_log_level = level;
     LOG_Info("Log level changed");
 }
+
+/**
+  * @brief  Log info message - takes varargs
+  * @param  message: message string
+  * @retval None
+  */
+void LOG_Info(const char* message)
+{
+    if (current_log_level >= LOG_LEVEL_INFO)
+    {
+        LOG_PrintHeader(LOG_LEVEL_INFO);
+        USB_TransmitString(message);
+        USB_TransmitString("\r\n");
+        log_counter++;
+    }
+}
+  
 
 /**
   * @brief  Log error message
@@ -155,23 +165,6 @@ void LOG_Proto(const message_t* msg)
     }
 }
 
-/**
-  * @brief  Log info message
-  * @param  message: message string
-  * @retval None
-  */
-void LOG_Info(const char* message)
-{
-    if (!log_initialized) return;
-    
-    if (current_log_level >= LOG_LEVEL_INFO)
-    {
-        LOG_PrintHeader(LOG_LEVEL_INFO);
-        USB_TransmitString(message);
-        USB_TransmitString("\r\n");
-        log_counter++;
-    }
-}
 
 /**
   * @brief  Log debug message

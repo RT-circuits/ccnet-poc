@@ -30,8 +30,8 @@ extern "C" {
   */
 typedef struct
 {
-    interface_config_t upstream;      /* Upstream interface configuration */
-    interface_config_t downstream;    /* Downstream interface configuration */
+    interface_config_t* upstream;     /* Pointer to upstream interface configuration */
+    interface_config_t* downstream;   /* Pointer to downstream interface configuration */
     uint8_t usb_logging_enabled;     /* USB logging enabled flag */
     uint8_t protocol_logging_verbose; /* Protocol logging verbosity */
     uint8_t bill_table[8];           /* Bill table mapping (8 bits) */
@@ -65,26 +65,6 @@ void CONFIG_LoadFromNVM(void);
 void CONFIG_SaveToNVM(void);
 void CONFIG_ShowMenu(void);
 void CONFIG_ProcessMenu(void);
-void CONFIG_DisplayCurrentSettings(void);
-void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t* interface);
-void CONFIG_UpdateUpstreamProtocol(void);
-void CONFIG_UpdateUpstreamBaudrate(void);
-void CONFIG_UpdateUpstreamParity(void);
-void CONFIG_UpdateDownstreamProtocol(void);
-void CONFIG_UpdateDownstreamBaudrate(void);
-void CONFIG_UpdateDownstreamParity(void);
-void CONFIG_UpdateDownstreamPolling(void);
-void CONFIG_UpdateBillTable(void);
-void CONFIG_UpdateUsbLogging(void);
-void CONFIG_UpdateProtocolLogging(void);
-void CONFIG_DisplayBaudrateOptions(void);
-void CONFIG_DisplayParityOptions(void);
-void CONFIG_DisplayProtocolOptions(void);
-void CONFIG_DisplayPollingOptions(void);
-void CONFIG_DisplayBillTableBinary(void);
-void CONFIG_DisplayProtocol(uint8_t protocol);
-void CONFIG_DisplayBaudrate(uint32_t baudrate);
-void CONFIG_DisplayParity(uint32_t parity);
 void CONFIG_FlushBuffer(void);
 void CONFIG_BufferWrite(const char* str);
 

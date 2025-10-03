@@ -38,7 +38,7 @@ message_t downstream_msg;  /* ID003 messages from downstream */
 
 
 
-/* Interface objects */
+/* Default interface objects might both flash banks be corrupted */
 /* CCNET interface on UART1 - Upstream communication */
 interface_config_t if_upstream = {
     .protocol = PROTO_CCNET,           /* CCNET protocol */
@@ -49,15 +49,6 @@ interface_config_t if_upstream = {
         .uart_polarity = POLARITY_NORMAL, /* Normal signal polarity */
         .uart_handle = &huart1          /* UART1 hardware handle */
     },
-    .datalink = {
-        .polling_period_ms = 100,       /* 100ms polling period */
-        .sync_length = 2,               /* 2 sync bytes for CCNET */
-        .sync_byte1 = 0x02,             /* First sync byte */
-        .sync_byte2 = 0x03,             /* Second sync byte */
-        .length_offset = 0,             /* No offset for CCNET */
-        .crc_length = 2,                /* 2 CRC bytes */
-        .inter_byte_timeout_ms = 5      /* 5ms inter-byte timeout */
-    }
 };
 
 /* ID003 interface on UART2 - Downstream communication */
@@ -70,15 +61,7 @@ interface_config_t if_downstream = {
         .uart_polarity = POLARITY_NORMAL, /* Normal signal polarity */
         .uart_handle = &huart2          /* UART2 hardware handle */
     },
-    .datalink = {
-        .polling_period_ms = 100,       /* 100ms polling period */
-        .sync_length = 1,               /* 1 sync byte for ID003 */
-        .sync_byte1 = 0xFC,             /* Sync byte */
-        .sync_byte2 = 0x00,             /* Not used for ID003 */
-        .length_offset = 0,             /* No offset for ID003 */
-        .crc_length = 2,                /* 2 CRC bytes */
-        .inter_byte_timeout_ms = 5      /* 5ms inter-byte timeout */
-    }
+    .datalink.polling_period_ms = 100,       /* 100ms polling period */
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,11 +98,6 @@ void APP_Init(void)
     /* Wait for USB to be ready - longer delay for consistency */
     HAL_Delay(500);
     
-    /* Send startup banner */
-    USB_TransmitString("\r\n*****************\r\nUSB VCP initialized\r\n*****************\r\n\r\n");
-    
-    /* Test USB with simple message */
-    USB_TransmitString("USB Test: Direct message\r\n");
     
     /* Initialize Log module */
     LOG_Init();
@@ -130,15 +108,16 @@ void APP_Init(void)
     MESSAGE_Init(&upstream_msg, PROTO_CCNET, MSG_DIR_TX, 0);
     MESSAGE_Init(&downstream_msg, PROTO_ID003, MSG_DIR_RX, 0);
     
-    /* Initialize UARTs with message structures */
-    UART_Init(&if_upstream, &upstream_msg);
-    UART_Init(&if_downstream, &downstream_msg);
-    
     /* Run all enabled tests */
     TESTS_RunAll();
 
     /* Initialize NVM module - DISABLED FOR TESTING */
     NVM_Init();
+    
+    /* Initialize UARTs with message structures */
+    UART_Init(&if_upstream, &upstream_msg);
+    UART_Init(&if_downstream, &downstream_msg);
+       
     
     /* Initialize Configuration module */
     CONFIG_Init();
@@ -152,10 +131,6 @@ void APP_Init(void)
     
 
     
-    /* Send startup message */
-    CONFIG_BufferWrite("\r\n=== SYSTEM READY ===\r\n");
-    CONFIG_BufferWrite("USB running - will echo input and send status every 2s\r\n");
-    CONFIG_FlushBuffer();
 }
 
 /**

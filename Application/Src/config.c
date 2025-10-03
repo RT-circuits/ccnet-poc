@@ -22,6 +22,7 @@
 /* External LED handle */
 extern LED_HandleTypeDef hled3;
 
+
 /* Private variables ---------------------------------------------------------*/
 
 /* Global configuration settings */
@@ -34,10 +35,27 @@ static uint16_t usb_tx_buffer_pos = 0;
 
 
 /* Private function prototypes -----------------------------------------------*/
-void CONFIG_DisplayBaudrateOptions(void);
-void CONFIG_DisplayParityOptions(void);
-void CONFIG_DisplayProtocolOptions(void);
-void CONFIG_DisplayBillTableBinary(void);
+static void CONFIG_MemCpy(uint8_t* dest, const uint8_t* src, uint32_t length);
+static void CONFIG_SetDataLink(interface_config_t* interface);
+static void CONFIG_DisplayBaudrateOptions(void);
+static void CONFIG_DisplayParityOptions(void);
+static void CONFIG_DisplayProtocolOptions(void);
+static void CONFIG_DisplayBillTableBinary(void);
+static void CONFIG_DisplayProtocol(uint8_t protocol);
+static void CONFIG_DisplayBaudrate(uint32_t baudrate);
+static void CONFIG_DisplayParity(uint32_t parity);
+static void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t* interface);
+static void CONFIG_ShowConfiguration(void);
+static void CONFIG_UpdateUpstreamProtocol(void);
+static void CONFIG_UpdateUpstreamBaudrate(void);
+static void CONFIG_UpdateUpstreamParity(void);
+static void CONFIG_UpdateDownstreamProtocol(void);
+static void CONFIG_UpdateDownstreamBaudrate(void);
+static void CONFIG_UpdateDownstreamParity(void);
+static void CONFIG_UpdateDownstreamPolling(void);
+static void CONFIG_UpdateBillTable(void);
+static void CONFIG_UpdateUsbLogging(void);
+static void CONFIG_UpdateProtocolLogging(void);
 static void CONFIG_DisplaySeparator(void);
 static void CONFIG_BufferFlush(void);
 static void CONFIG_BufferCheck(void);
@@ -55,22 +73,10 @@ static nvm_result_t CONFIG_DeserializeFromBuffer(const uint8_t* buffer, uint32_t
   */
 void CONFIG_Init(void)
 {
-    /* Initialize with default values */
-    g_config.upstream.protocol = PROTO_CCNET;
-    g_config.upstream.role = ROLE_BILL_VALIDATOR;
-    g_config.upstream.phy.baudrate = 9600;
-    g_config.upstream.phy.parity = UART_PARITY_NONE;
-    g_config.upstream.phy.uart_polarity = POLARITY_NORMAL;
-    g_config.upstream.datalink.polling_period_ms = 0; /* N/A for upstream */
-    g_config.upstream.phy.uart_handle = &huart1;
-    
-    g_config.downstream.protocol = PROTO_ID003;
-    g_config.downstream.role = ROLE_CONTROLLER;
-    g_config.downstream.phy.baudrate = 9600;
-    g_config.downstream.phy.parity = UART_PARITY_EVEN;
-    g_config.downstream.phy.uart_polarity = POLARITY_NORMAL;
-    g_config.downstream.datalink.polling_period_ms = 100;
-    g_config.downstream.phy.uart_handle = &huart2;
+    /* Point to default UART interface objects set in app.c as fallbacks */
+    /* These provide default values if reading from flash fails */
+    g_config.upstream = &if_upstream;
+    g_config.downstream = &if_downstream;
     
     g_config.usb_logging_enabled = 1;
     g_config.protocol_logging_verbose = 0;
@@ -81,9 +87,13 @@ void CONFIG_Init(void)
         g_config.bill_table[i] = 0;
     }
     
-    /* Load settings from NVM - DISABLED FOR TESTING */
+    /* Load settings from NVM and store in if_upstream and if_downstream */
     CONFIG_LoadFromNVM();
+    CONFIG_SetDataLink(&if_upstream);
+    CONFIG_SetDataLink(&if_downstream);
     
+    /* Display current settings */
+    CONFIG_ShowConfiguration();
 }
 
 /**
@@ -106,10 +116,56 @@ void CONFIG_LoadFromNVM(void)
         {
             LOG_Warn("Failed to deserialize configuration data, using defaults");
         }
+        else {
+            LOG_Info("Configuration loaded from flash successfully");
+        }
     }
     else
     {
         LOG_Warn("Failed to load configuration from NVM, using defaults");
+    }
+}
+
+/**
+  * @brief  Set protocol-specific datalink configuration for interface
+  * @param  interface: Pointer to interface configuration structure
+  * @note   Sets sync bytes, length offset, CRC length, and timeout based on protocol.
+  *         Polling period is preserved from flash storage.
+  * @retval None
+  */
+static void CONFIG_SetDataLink(interface_config_t* interface)
+{
+    /* Set data link configuration in interface object based on protocol read from flash */
+    /* only polling period (relevant for downstream) is stored in flash */
+    switch (interface->protocol)
+    {
+        case PROTO_CCNET:
+            interface->datalink.sync_length = 2;
+            interface->datalink.sync_byte1 = 0x02;
+            interface->datalink.sync_byte2 = 0x03;
+            interface->datalink.length_offset = 0;
+            interface->datalink.crc_length = 2;
+            interface->datalink.inter_byte_timeout_ms = 5;
+            break;
+        case PROTO_ID003:
+            interface->datalink.sync_length = 1;
+            interface->datalink.sync_byte1 = 0xFC;
+            interface->datalink.sync_byte2 = 0x00;
+            interface->datalink.length_offset = 0;
+            interface->datalink.crc_length = 2;
+            interface->datalink.inter_byte_timeout_ms = 5;
+            break;
+        case PROTO_CCTALK:
+            interface->datalink.sync_length = 0;
+            interface->datalink.sync_byte1 = 0x00;
+            interface->datalink.sync_byte2 = 0x00;
+            interface->datalink.length_offset = -5;
+            interface->datalink.crc_length = 1;
+            interface->datalink.inter_byte_timeout_ms = 5;
+            break;
+        default:
+            LOG_Error("Unknown protocol");
+            break;
     }
 }
 
@@ -149,58 +205,67 @@ void CONFIG_SaveToNVM(void)
     CONFIG_FlushBuffer();
 }
 
-
-/**
-  * @brief  Show configuration menu
-  * @retval None
-  */
 void CONFIG_ShowMenu(void)
 {
-    CONFIG_BufferWrite("\r\n=== CONFIGURATION MENU ===\r\n");
-    CONFIG_BufferWrite("1.  Upstream Protocol        (Current: CCNET - fixed)\r\n");
-    
-    CONFIG_BufferWrite("2.  Upstream Baudrate        (Current: ");
-    CONFIG_DisplayBaudrate(g_config.upstream.phy.baudrate);
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("3.  Upstream Parity          (Current: ");
-    CONFIG_DisplayParity(g_config.upstream.phy.parity);
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("4.  Downstream Protocol      (Current: ");
-    CONFIG_DisplayProtocol(g_config.downstream.protocol);
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("5.  Downstream Baudrate      (Current: ");
-    CONFIG_DisplayBaudrate(g_config.downstream.phy.baudrate);
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("6.  Downstream Parity        (Current: ");
-    CONFIG_DisplayParity(g_config.downstream.phy.parity);
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("7.  Downstream Polling       (Current: ");
-    CONFIG_BufferWrite(g_config.downstream.datalink.polling_period_ms == 100 ? "100ms" : 
-                       g_config.downstream.datalink.polling_period_ms == 200 ? "200ms" : 
-                       g_config.downstream.datalink.polling_period_ms == 500 ? "500ms" : "1000ms");
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("8.  Bill Table               (Current: Binary)\r\n");
-    
-    CONFIG_BufferWrite("9.  USB Logging              (Current: ");
-    CONFIG_BufferWrite(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
-    CONFIG_BufferWrite(")\r\n");
-    
-    CONFIG_BufferWrite("10. Protocol Logging         (Current: ");
-    CONFIG_BufferWrite(g_config.protocol_logging_verbose ? "Verbose" : "Short");
-    CONFIG_BufferWrite(")\r\n");
+    CONFIG_ShowConfiguration();
+    HAL_Delay(100); /* 100ms delay to ensure the configuration is displayed */
     
     CONFIG_BufferWrite("11. Exit and Restart\r\n");
     CONFIG_BufferWrite("12. Save, Exit and Restart\r\n");
     CONFIG_BufferWrite("==========================\r\n");
     CONFIG_BufferWrite("Enter choice (1-12): ");
     
-    // Flush buffer when menu is complete
+    // Flush buffer when complete
+    CONFIG_FlushBuffer();
+}
+
+/**
+  * @brief  Show configuration menu
+  * @retval None
+  */
+static void CONFIG_ShowConfiguration(void)
+{
+    CONFIG_BufferWrite("\r\n=== CONFIGURATION ===\r\n");
+    CONFIG_BufferWrite("1.  Upstream Protocol        : CCNET - fixed\r\n");
+    
+    CONFIG_BufferWrite("2.  Upstream Baudrate        : ");
+    CONFIG_DisplayBaudrate(g_config.upstream->phy.baudrate);
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("3.  Upstream Parity          : ");
+    CONFIG_DisplayParity(g_config.upstream->phy.parity);
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("4.  Downstream Protocol      : ");
+    CONFIG_DisplayProtocol(g_config.downstream->protocol);
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("5.  Downstream Baudrate      : ");
+    CONFIG_DisplayBaudrate(g_config.downstream->phy.baudrate);
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("6.  Downstream Parity        : ");
+    CONFIG_DisplayParity(g_config.downstream->phy.parity);
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("7.  Downstream Polling       : ");
+    CONFIG_BufferWrite(g_config.downstream->datalink.polling_period_ms == 100 ? "100ms" : 
+                       g_config.downstream->datalink.polling_period_ms == 200 ? "200ms" : 
+                       g_config.downstream->datalink.polling_period_ms == 500 ? "500ms" : "1000ms");
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("8.  Bill Table               : Binary\r\n");
+    
+    CONFIG_BufferWrite("9.  USB Logging              : ");
+    CONFIG_BufferWrite(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
+    CONFIG_BufferWrite("\r\n");
+    
+    CONFIG_BufferWrite("10. Protocol Logging         : ");
+    CONFIG_BufferWrite(g_config.protocol_logging_verbose ? "Verbose" : "Short");
+    CONFIG_BufferWrite("\r\n");
+    CONFIG_BufferWrite("======================\r\n\r\n");
+    
+ // Flush buffer when complete
     CONFIG_FlushBuffer();
 }
 
@@ -282,31 +347,6 @@ void CONFIG_ProcessMenu(void)
     }
 }
 
-/**
-  * @brief  Display current configuration settings
-  * @retval None
-  */
-void CONFIG_DisplayCurrentSettings(void)
-{
-    USB_TransmitString("\r\n=== CURRENT CONFIGURATION ===\r\n");
-    
-    CONFIG_DisplayInterfaceSettings("Upstream", &g_config.upstream);
-    CONFIG_DisplayInterfaceSettings("Downstream", &g_config.downstream);
-    
-    USB_TransmitString("Bill Table: ");
-    CONFIG_DisplayBillTableBinary();
-    USB_TransmitString("\r\n");
-    
-    USB_TransmitString("USB Logging: ");
-    USB_TransmitString(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
-    USB_TransmitString("\r\n");
-    
-    USB_TransmitString("Protocol Logging: ");
-    USB_TransmitString(g_config.protocol_logging_verbose ? "Verbose" : "Short");
-    USB_TransmitString("\r\n");
-    
-    USB_TransmitString("==============================\r\n\r\n");
-}
 
 /**
   * @brief  Display interface settings
@@ -314,7 +354,7 @@ void CONFIG_DisplayCurrentSettings(void)
   * @param  interface: interface configuration pointer
   * @retval None
   */
-void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t* interface)
+static void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t* interface)
 {
     USB_TransmitString(name);
     USB_TransmitString(" Interface:\r\n");
@@ -394,7 +434,7 @@ void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t* inter
   * @brief  Update upstream protocol (fixed to CCNET)
   * @retval None
   */
-void CONFIG_UpdateUpstreamProtocol(void)
+static void CONFIG_UpdateUpstreamProtocol(void)
 {
     USB_TransmitString("Upstream protocol is fixed to CCNET and cannot be changed.\r\n");
 }
@@ -403,7 +443,7 @@ void CONFIG_UpdateUpstreamProtocol(void)
   * @brief  Update upstream baudrate
   * @retval None
   */
-void CONFIG_UpdateUpstreamBaudrate(void)
+static void CONFIG_UpdateUpstreamBaudrate(void)
 {
     CONFIG_BufferWrite("\r\nSelect upstream baudrate:\r\n");
     CONFIG_DisplayBaudrateOptions();
@@ -420,23 +460,23 @@ void CONFIG_UpdateUpstreamBaudrate(void)
         {
             switch (choice)
             {
-                case 1: g_config.upstream.phy.baudrate = 9600; break;
-                case 2: g_config.upstream.phy.baudrate = 19200; break;
-                case 3: g_config.upstream.phy.baudrate = 38400; break;
-                case 4: g_config.upstream.phy.baudrate = 57600; break;
-                case 5: g_config.upstream.phy.baudrate = 115200; break;
+                case 1: g_config.upstream->phy.baudrate = 9600; break;
+                case 2: g_config.upstream->phy.baudrate = 19200; break;
+                case 3: g_config.upstream->phy.baudrate = 38400; break;
+                case 4: g_config.upstream->phy.baudrate = 57600; break;
+                case 5: g_config.upstream->phy.baudrate = 115200; break;
             }
         }
         else
         {
             CONFIG_BufferWrite("Invalid choice! Using default (9600).\r\n");
-            g_config.upstream.phy.baudrate = 9600;
+            g_config.upstream->phy.baudrate = 9600;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
-        g_config.upstream.phy.baudrate = 9600;
+        g_config.upstream->phy.baudrate = 9600;
     }
     CONFIG_FlushBuffer();
 }
@@ -445,7 +485,7 @@ void CONFIG_UpdateUpstreamBaudrate(void)
   * @brief  Update upstream parity
   * @retval None
   */
-void CONFIG_UpdateUpstreamParity(void)
+static void CONFIG_UpdateUpstreamParity(void)
 {
     CONFIG_BufferWrite("\r\nSelect upstream parity:\r\n");
     CONFIG_DisplayParityOptions();
@@ -462,21 +502,21 @@ void CONFIG_UpdateUpstreamParity(void)
         {
             switch (choice)
             {
-                case 1: g_config.upstream.phy.parity = UART_PARITY_NONE; break;
-                case 2: g_config.upstream.phy.parity = UART_PARITY_EVEN; break;
-                case 3: g_config.upstream.phy.parity = UART_PARITY_ODD; break;
+                case 1: g_config.upstream->phy.parity = UART_PARITY_NONE; break;
+                case 2: g_config.upstream->phy.parity = UART_PARITY_EVEN; break;
+                case 3: g_config.upstream->phy.parity = UART_PARITY_ODD; break;
             }
         }
         else
         {
             CONFIG_BufferWrite("Invalid choice! Using default (None).\r\n");
-            g_config.upstream.phy.parity = UART_PARITY_NONE;
+            g_config.upstream->phy.parity = UART_PARITY_NONE;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (None).\r\n");
-        g_config.upstream.phy.parity = UART_PARITY_NONE;
+        g_config.upstream->phy.parity = UART_PARITY_NONE;
     }
     CONFIG_FlushBuffer();
 }
@@ -485,7 +525,7 @@ void CONFIG_UpdateUpstreamParity(void)
   * @brief  Update downstream protocol
   * @retval None
   */
-void CONFIG_UpdateDownstreamProtocol(void)
+static void CONFIG_UpdateDownstreamProtocol(void)
 {
     CONFIG_BufferWrite("\r\nSelect downstream protocol:\r\n");
     CONFIG_DisplayProtocolOptions();
@@ -502,20 +542,20 @@ void CONFIG_UpdateDownstreamProtocol(void)
         {
             switch (choice)
             {
-                case 1: g_config.downstream.protocol = PROTO_ID003; break;
-                case 2: g_config.downstream.protocol = PROTO_CCTALK; break;
+                case 1: g_config.downstream->protocol = PROTO_ID003; break;
+                case 2: g_config.downstream->protocol = PROTO_CCTALK; break;
             }
         }
         else
         {
             CONFIG_BufferWrite("Invalid choice! Using default (ID003).\r\n");
-            g_config.downstream.protocol = PROTO_ID003;
+            g_config.downstream->protocol = PROTO_ID003;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (ID003).\r\n");
-        g_config.downstream.protocol = PROTO_ID003;
+        g_config.downstream->protocol = PROTO_ID003;
     }
     CONFIG_FlushBuffer();
 }
@@ -524,7 +564,7 @@ void CONFIG_UpdateDownstreamProtocol(void)
   * @brief  Update downstream baudrate
   * @retval None
   */
-void CONFIG_UpdateDownstreamBaudrate(void)
+static void CONFIG_UpdateDownstreamBaudrate(void)
 {
     CONFIG_BufferWrite("\r\nSelect downstream baudrate:\r\n");
     CONFIG_DisplayBaudrateOptions();
@@ -542,29 +582,29 @@ void CONFIG_UpdateDownstreamBaudrate(void)
             {
                 switch (choice)
                 {
-                    case 1: g_config.downstream.phy.baudrate = 9600; break;
-                    case 2: g_config.downstream.phy.baudrate = 19200; break;
-                    case 3: g_config.downstream.phy.baudrate = 38400; break;
-                    case 4: g_config.downstream.phy.baudrate = 57600; break;
-                    case 5: g_config.downstream.phy.baudrate = 115200; break;
+                    case 1: g_config.downstream->phy.baudrate = 9600; break;
+                    case 2: g_config.downstream->phy.baudrate = 19200; break;
+                    case 3: g_config.downstream->phy.baudrate = 38400; break;
+                    case 4: g_config.downstream->phy.baudrate = 57600; break;
+                    case 5: g_config.downstream->phy.baudrate = 115200; break;
                 }
             }
             else
             {
                 CONFIG_BufferWrite("Invalid choice! Using default (9600).\r\n");
-                g_config.downstream.phy.baudrate = 9600;
+                g_config.downstream->phy.baudrate = 9600;
             }
         }
         else
         {
             CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
-            g_config.downstream.phy.baudrate = 9600;
+            g_config.downstream->phy.baudrate = 9600;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
-        g_config.downstream.phy.baudrate = 9600;
+        g_config.downstream->phy.baudrate = 9600;
     }
     CONFIG_FlushBuffer();
 }
@@ -573,7 +613,7 @@ void CONFIG_UpdateDownstreamBaudrate(void)
   * @brief  Update downstream parity
   * @retval None
   */
-void CONFIG_UpdateDownstreamParity(void)
+static void CONFIG_UpdateDownstreamParity(void)
 {
     CONFIG_BufferWrite("\r\nSelect downstream parity:\r\n");
     CONFIG_DisplayParityOptions();
@@ -591,27 +631,27 @@ void CONFIG_UpdateDownstreamParity(void)
             {
                 switch (choice)
                 {
-                    case 1: g_config.downstream.phy.parity = UART_PARITY_NONE; break;
-                    case 2: g_config.downstream.phy.parity = UART_PARITY_EVEN; break;
-                    case 3: g_config.downstream.phy.parity = UART_PARITY_ODD; break;
+                    case 1: g_config.downstream->phy.parity = UART_PARITY_NONE; break;
+                    case 2: g_config.downstream->phy.parity = UART_PARITY_EVEN; break;
+                    case 3: g_config.downstream->phy.parity = UART_PARITY_ODD; break;
                 }
             }
             else
             {
                 CONFIG_BufferWrite("Invalid choice! Using default (Even).\r\n");
-                g_config.downstream.phy.parity = UART_PARITY_EVEN;
+                g_config.downstream->phy.parity = UART_PARITY_EVEN;
             }
         }
         else
         {
             CONFIG_BufferWrite("No input received. Using default (Even).\r\n");
-            g_config.downstream.phy.parity = UART_PARITY_EVEN;
+            g_config.downstream->phy.parity = UART_PARITY_EVEN;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (Even).\r\n");
-        g_config.downstream.phy.parity = UART_PARITY_EVEN;
+        g_config.downstream->phy.parity = UART_PARITY_EVEN;
     }
     CONFIG_FlushBuffer();
 }
@@ -620,7 +660,7 @@ void CONFIG_UpdateDownstreamParity(void)
   * @brief  Update downstream polling period
   * @retval None
   */
-void CONFIG_UpdateDownstreamPolling(void)
+static void CONFIG_UpdateDownstreamPolling(void)
 {
     CONFIG_BufferWrite("\r\nSelect downstream polling period:\r\n");
     CONFIG_BufferWrite("1. 100ms\r\n");
@@ -641,28 +681,28 @@ void CONFIG_UpdateDownstreamPolling(void)
             {
                 switch (choice)
                 {
-                    case 1: g_config.downstream.datalink.polling_period_ms = 100; break;
-                    case 2: g_config.downstream.datalink.polling_period_ms = 200; break;
-                    case 3: g_config.downstream.datalink.polling_period_ms = 500; break;
-                    case 4: g_config.downstream.datalink.polling_period_ms = 1000; break;
+                    case 1: g_config.downstream->datalink.polling_period_ms = 100; break;
+                    case 2: g_config.downstream->datalink.polling_period_ms = 200; break;
+                    case 3: g_config.downstream->datalink.polling_period_ms = 500; break;
+                    case 4: g_config.downstream->datalink.polling_period_ms = 1000; break;
                 }
             }
             else
             {
                 CONFIG_BufferWrite("Invalid choice! Using default (100ms).\r\n");
-                g_config.downstream.datalink.polling_period_ms = 100;
+                g_config.downstream->datalink.polling_period_ms = 100;
             }
         }
         else
         {
             CONFIG_BufferWrite("No input received. Using default (100ms).\r\n");
-            g_config.downstream.datalink.polling_period_ms = 100;
+            g_config.downstream->datalink.polling_period_ms = 100;
         }
     }
     else
     {
         CONFIG_BufferWrite("No input received. Using default (100ms).\r\n");
-        g_config.downstream.datalink.polling_period_ms = 100;
+        g_config.downstream->datalink.polling_period_ms = 100;
     }
     CONFIG_FlushBuffer();
 }
@@ -671,7 +711,7 @@ void CONFIG_UpdateDownstreamPolling(void)
   * @brief  Update bill table
   * @retval None
   */
-void CONFIG_UpdateBillTable(void)
+static void CONFIG_UpdateBillTable(void)
 {
     CONFIG_BufferWrite("\r\nCurrent bill table: ");
     CONFIG_DisplayBillTableBinary();
@@ -729,7 +769,7 @@ void CONFIG_UpdateBillTable(void)
   * @brief  Update USB logging setting
   * @retval None
   */
-void CONFIG_UpdateUsbLogging(void)
+static void CONFIG_UpdateUsbLogging(void)
 {
     CONFIG_BufferWrite("\r\nUSB Logging: ");
     CONFIG_BufferWrite(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
@@ -774,7 +814,7 @@ void CONFIG_UpdateUsbLogging(void)
   * @brief  Update protocol logging setting
   * @retval None
   */
-void CONFIG_UpdateProtocolLogging(void)
+static void CONFIG_UpdateProtocolLogging(void)
 {
     CONFIG_BufferWrite("\r\nProtocol Logging: ");
     CONFIG_BufferWrite(g_config.protocol_logging_verbose ? "Verbose" : "Short");
@@ -830,7 +870,7 @@ void CONFIG_FlushBuffer(void)
   * @brief  Display baudrate options
   * @retval None
   */
-void CONFIG_DisplayBaudrateOptions(void)
+static void CONFIG_DisplayBaudrateOptions(void)
 {
     CONFIG_BufferWrite("1. 9600\r\n");
     CONFIG_BufferWrite("2. 19200\r\n");
@@ -843,7 +883,7 @@ void CONFIG_DisplayBaudrateOptions(void)
   * @brief  Display parity options
   * @retval None
   */
-void CONFIG_DisplayParityOptions(void)
+static void CONFIG_DisplayParityOptions(void)
 {
     CONFIG_BufferWrite("1. None\r\n");
     CONFIG_BufferWrite("2. Even\r\n");
@@ -854,7 +894,7 @@ void CONFIG_DisplayParityOptions(void)
   * @brief  Display protocol options
   * @retval None
   */
-void CONFIG_DisplayProtocolOptions(void)
+static void CONFIG_DisplayProtocolOptions(void)
 {
     CONFIG_BufferWrite("1. ID003\r\n");
     CONFIG_BufferWrite("2. CCTalk\r\n");
@@ -864,7 +904,7 @@ void CONFIG_DisplayProtocolOptions(void)
   * @brief  Display bill table in binary format
   * @retval None
   */
-void CONFIG_DisplayBillTableBinary(void)
+static void CONFIG_DisplayBillTableBinary(void)
 {
     for (int i = 0; i < 8; i++)
     {
@@ -933,7 +973,7 @@ static void CONFIG_BufferCheck(void)
   * @param  protocol: protocol type
   * @retval None
   */
-void CONFIG_DisplayProtocol(uint8_t protocol)
+static void CONFIG_DisplayProtocol(uint8_t protocol)
 {
     switch (protocol)
     {
@@ -957,7 +997,7 @@ void CONFIG_DisplayProtocol(uint8_t protocol)
   * @param  baudrate: baudrate value
   * @retval None
   */
-void CONFIG_DisplayBaudrate(uint32_t baudrate)
+static void CONFIG_DisplayBaudrate(uint32_t baudrate)
 {
     if (baudrate == 9600) CONFIG_BufferWrite("9600");
     else if (baudrate == 19200) CONFIG_BufferWrite("19200");
@@ -972,7 +1012,7 @@ void CONFIG_DisplayBaudrate(uint32_t baudrate)
   * @param  parity: parity type
   * @retval None
   */
-void CONFIG_DisplayParity(uint32_t parity)
+static void CONFIG_DisplayParity(uint32_t parity)
 {
     switch (parity)
     {
@@ -1072,21 +1112,41 @@ static nvm_result_t CONFIG_SerializeToBuffer(uint8_t* buffer, uint32_t* buffer_s
         return NVM_INVALID_PARAM;
     }
     
-    /* Simple binary serialization - direct memory copy */
-    uint32_t config_size = sizeof(config_settings_t);
+    uint32_t offset = 0;
     
-    if (config_size > 512)
+    /* Serialize upstream interface configuration */
+    if (g_config.upstream != NULL)
+    {
+        CONFIG_MemCpy(&buffer[offset], (const uint8_t*)g_config.upstream, sizeof(interface_config_t));
+        offset += sizeof(interface_config_t);
+    }
+    else
     {
         return NVM_INVALID_PARAM;
     }
     
-    /* Copy configuration structure to buffer */
-    for (uint32_t i = 0; i < config_size; i++)
+    /* Serialize downstream interface configuration */
+    if (g_config.downstream != NULL)
     {
-        buffer[i] = ((uint8_t*)&g_config)[i];
+        CONFIG_MemCpy(&buffer[offset], (const uint8_t*)g_config.downstream, sizeof(interface_config_t));
+        offset += sizeof(interface_config_t);
+    }
+    else
+    {
+        return NVM_INVALID_PARAM;
     }
     
-    *buffer_size = config_size;
+    /* Serialize other configuration fields */
+    buffer[offset++] = g_config.usb_logging_enabled;
+    buffer[offset++] = g_config.protocol_logging_verbose;
+    
+    /* Serialize bill table */
+    for (int i = 0; i < 8; i++)
+    {
+        buffer[offset++] = g_config.bill_table[i];
+    }
+    
+    *buffer_size = offset;
     return NVM_OK;
 }
 
@@ -1103,20 +1163,63 @@ static nvm_result_t CONFIG_DeserializeFromBuffer(const uint8_t* buffer, uint32_t
         return NVM_INVALID_PARAM;
     }
     
-    /* Check if buffer size matches expected configuration size */
-    uint32_t expected_size = sizeof(config_settings_t);
+    /* Calculate expected buffer size: 2x interface_config_t + 2 bytes + 8 bytes bill table */
+    uint32_t expected_size = (2 * sizeof(interface_config_t)) + 2 + 8;
     
     if (buffer_size != expected_size)
     {
-        LOG_Error("Buffer size does not match config size");
+        LOG_Error("Buffer size does not match expected config size");
         return NVM_INVALID_PARAM;
     }
     
-    /* Copy buffer data to configuration structure */
-    for (uint32_t i = 0; i < expected_size; i++)
+    uint32_t offset = 0;
+    
+    /* Deserialize upstream interface configuration */
+    if (g_config.upstream != NULL)
     {
-        ((uint8_t*)&g_config)[i] = buffer[i];
+        CONFIG_MemCpy((uint8_t*)g_config.upstream, &buffer[offset], sizeof(interface_config_t));
+        offset += sizeof(interface_config_t);
+    }
+    else
+    {
+        return NVM_INVALID_PARAM;
+    }
+    
+    /* Deserialize downstream interface configuration */
+    if (g_config.downstream != NULL)
+    {
+        CONFIG_MemCpy((uint8_t*)g_config.downstream, &buffer[offset], sizeof(interface_config_t));
+        offset += sizeof(interface_config_t);
+    }
+    else
+    {
+        return NVM_INVALID_PARAM;
+    }
+    
+    /* Deserialize other configuration fields */
+    g_config.usb_logging_enabled = buffer[offset++];
+    g_config.protocol_logging_verbose = buffer[offset++];
+    
+    /* Deserialize bill table */
+    for (int i = 0; i < 8; i++)
+    {
+        g_config.bill_table[i] = buffer[offset++];
     }
     
     return NVM_OK;
+}
+
+/**
+  * @brief  Copy memory from source to destination
+  * @param  dest: Destination buffer
+  * @param  src: Source buffer
+  * @param  length: Number of bytes to copy
+  * @retval None
+  */
+static void CONFIG_MemCpy(uint8_t* dest, const uint8_t* src, uint32_t length)
+{
+    for (uint32_t i = 0; i < length; i++)
+    {
+        dest[i] = src[i];
+    }
 }

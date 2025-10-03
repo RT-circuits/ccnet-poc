@@ -240,8 +240,6 @@ void UART_Init(interface_config_t* interface, message_t* message)
     
     /* Start receiving first byte */
     HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
-    
-    LOG_Info("UART initialized for interface");
 }
 
 /* Private functions ---------------------------------------------------------*/

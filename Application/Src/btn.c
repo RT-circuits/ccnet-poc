@@ -98,7 +98,6 @@ void BTN_ProcessConfigResetButton(void)
             
             
             // Start config menu
-            CONFIG_DisplayCurrentSettings();
             CONFIG_ShowMenu();
             config_menu_active = 1;
         }

@@ -215,13 +215,35 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - add receiving uart data in app.c main loop
 - flag when .raw data is received
 - parse .raw into a message. Check CRC, extract opcode and data
-- add ascii of opcode to message for logging/debugging. See proto.h. Every protocol has its own opcodes. Also, make distinction between transmitting and receiving opcodes
-- return state of the message in main loop (logical states: msg_ok, msg_unknown_opcode, msg_data_missing_for_opcode, msg_crc_wrong)
+- make distinction between transmitting and receiving messages hence opcodes
+- return state of the message in main loop MSG_NO_MESSAGE,MSG_OK,MSG_UNKNOWN_OPCODE,MSG_DATA_MISSING_FOR_OPCODE,MSG_CRC_INVALID
+- do nothing if no message. Add log info on the other options
 - log_warn if not msg_ok
 - log_proto of opcode and raw message bytes in one
 
-notes:
-- crc validate function verified
+### store UART and protocol configuration in interface objects
+- currently the configuration menu has its own copy of interface object. Replaced that with pointers
+- for that copying (de)serialed data from original needs to be to the right structure locations. Make that change
+- at startup read flash and store into interface objects
+- LOG_INFO the configuration
+- function for the above already exists: CONFIG_DisplayCurrentSettings. use that
+- inititialize uarts after config is read (now before)
+
+### feature: transmit message
+- create a function APP_TransmitMessage that takes as arguments: interface: upstream or downstream, opcode, data, datalength
+- in MESSAGE convert this into a message object. Set direction to TX if downstream, RX if upstream
+- log info and proto the message
+- make first statemachine setting what to expect
+- create a transmit test in mesage_test that sends ID003_RESET downstream and CCNET status initialize upstream
+
+### features/bugs todo:
+
+- find solution to store bidirectional lookup list that checks membership as well. Probably make tree arrays. Make sure to stay consistent
+- are queues needed for transmit? receive?
+
+- add ascii of opcode to message for logging/debugging. See proto.h.
+- log_proto of opcode and raw message bytes in one
+- improve usb code
 
 # Tests
 ### Receive CCNET message at uart1:
