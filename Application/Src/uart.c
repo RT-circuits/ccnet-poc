@@ -35,6 +35,7 @@ typedef enum {
 typedef struct {
     UART_HandleTypeDef *huart;
     uint8_t sync_length;              /* Number of sync bytes (1 or 2) */
+    uint8_t length_offset;            /* Length offset (5 for cctalk (positive nr))*/
     uint8_t sync_bytes[2];         /* Sync bytes */
     UART_State_t state;
     uint8_t rx_buffer[256];        /* Receive buffer */
@@ -63,16 +64,24 @@ uint8_t downstream_rx_flag = 0;
   */
 void UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    UART_Interface_t *intf = NULL;
+    datalink_config_t datalink;
+    UART_Interface_t *intf = NULL;  /* used for context */
     if (huart == uart_intf1.huart) {
-        intf = &uart_intf1;
-    } else if (huart == uart_intf2.huart) {
+        intf = &uart_intf1; /* Upstream */
+        datalink = if_upstream.datalink;
+    } else if (huart == uart_intf2.huart) { /* Downstream */
         intf = &uart_intf2;
+        datalink = if_downstream.datalink;
     }
     if (intf == NULL) return;
+    /* set datalink parameters in context */
+    intf->sync_length = datalink.sync_length;
+    intf->sync_bytes[0] = datalink.sync_byte1;
+    intf->sync_bytes[1] = datalink.sync_byte2;
+    intf->length_offset = datalink.length_offset;
 
     uint32_t current_tick = HAL_GetTick();
-    uint32_t timeout_ms = intf->interface->datalink.inter_byte_timeout_ms;
+    uint32_t timeout_ms = datalink.inter_byte_timeout_ms;
     
     /* Check for timeout */
     if (intf->state != UART_STATE_WAIT_SYNC1 && (current_tick - intf->last_tick > timeout_ms)) {

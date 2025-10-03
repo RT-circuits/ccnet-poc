@@ -225,9 +225,13 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - currently the configuration menu has its own copy of interface object. Replaced that with pointers
 - for that copying (de)serialed data from original needs to be to the right structure locations. Make that change
 - at startup read flash and store into interface objects
-- LOG_INFO the configuration
+- print the configuration. do no use vsnprintf functions since it created a hardfault before
 - function for the above already exists: CONFIG_DisplayCurrentSettings. use that
 - inititialize uarts after config is read (now before)
+
+### bug: receive not triggering interrupt
+- find what caused it: sync_length of upstream uart still zero. not set by previous feature
+- describe what fixed it: uart rx callback has its own context. sync length, bytes and offset (cctalk) now copied
 
 ### feature: transmit message
 - create a function APP_TransmitMessage that takes as arguments: interface: upstream or downstream, opcode, data, datalength
