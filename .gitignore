@@ -4,6 +4,8 @@
 .cproject
 .settings/
 *.launch
+.mxproject
+.clangd
 
 # Build output
 Debug/
