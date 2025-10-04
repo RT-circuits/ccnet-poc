@@ -33,7 +33,7 @@ static uint16_t CRC_Calculate_CCTALK(uint8_t* data, uint16_t length);
   */
 uint16_t CRC_AppendCRC(message_t* msg, uint16_t pos)
 {
-    uint16_t crc = CRC_Calculate(msg->raw, msg->protocol, msg->length);
+    uint16_t crc = CRC_Calculate(msg->raw, msg->protocol, pos);
     msg->raw[pos++] = (uint8_t)(crc & 0xFF);
     msg->raw[pos++] = (uint8_t)((crc >> 8) & 0xFF);
     return pos;

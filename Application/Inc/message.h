@@ -69,9 +69,8 @@ typedef struct {
 /* Exported variables --------------------------------------------------------*/
 
 /* Exported functions prototypes ---------------------------------------------*/
-void MESSAGE_Construct(message_t* msg);
-void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t direction, uint8_t opcode);
-void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length);
+void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t direction);
+message_t MESSAGE_Create(proto_name_t protocol, message_direction_t direction, uint8_t opcode, uint8_t* data, uint8_t data_length);
 message_parse_result_t MESSAGE_Parse(message_t* msg);
 const char* MESSAGE_GetOpcodeASCII(const message_t* msg);
 message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg);

@@ -229,25 +229,31 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - function for the above already exists: CONFIG_DisplayCurrentSettings. use that
 - inititialize uarts after config is read (now before)
 
-### bug: receive not triggering interrupt
+### bug: receive not triggering uart interrupt
 - find what caused it: sync_length of upstream uart still zero. not set by previous feature
 - describe what fixed it: uart rx callback has its own context. sync length, bytes and offset (cctalk) now copied
 
-### feature: transmit message
-- create a function APP_TransmitMessage that takes as arguments: interface: upstream or downstream, opcode, data, datalength
+### feat: transmit message
+- create a function APP_SendMessage that takes as arguments: interface: upstream or downstream, opcode, data, datalength
 - in MESSAGE convert this into a message object. Set direction to TX if downstream, RX if upstream
-- log info and proto the message
-- make first statemachine setting what to expect
+- log_info and log_proto the message
+- make first version statemachine setting what to expect when transmitting this message
 - create a transmit test in mesage_test that sends ID003_RESET downstream and CCNET status initialize upstream
+- test: add APP_SendMessage(&if_upstream, CCNET_STATUS_INITIALIZE, NULL, 0) if CCNET_POLL is received in app.c 
+- test: send RESET downstream if RESET upstream is received
+- add macro in app.c for request (downstream) and respond (upstream send messages)
+- also RESPOND ACK if reset was received
 
 ### features/bugs todo:
 
 - find solution to store bidirectional lookup list that checks membership as well. Probably make tree arrays. Make sure to stay consistent
 - are queues needed for transmit? receive?
-
+- call upstream incoming/outgoing trafic upstream reques/response. Use this for direction in message object
 - add ascii of opcode to message for logging/debugging. See proto.h.
 - log_proto of opcode and raw message bytes in one
+- switch uart to dma. Now it is blocking during send 
 - improve usb code
+
 
 # Tests
 ### Receive CCNET message at uart1:

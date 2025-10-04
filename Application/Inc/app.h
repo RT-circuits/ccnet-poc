@@ -110,6 +110,7 @@ void APP_Init(void);
 void APP_Process(void);
 void APP_MCUReset(void);
 void APP_ShowConfigMenu(void);
+void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length);
 
 #ifdef __cplusplus
 }

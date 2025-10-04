@@ -16,30 +16,63 @@
 #include "message.h"
 #include "crc.h"
 
+/* Private defines -----------------------------------------------------------*/
+#define MESSAGE_MAX_DATA_LENGTH 250
+
 /* Private variables ---------------------------------------------------------*/
 
 /* Private function prototypes -----------------------------------------------*/
+static void MESSAGE_SetOpcode(message_t* msg, uint8_t opcode);
+static void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length);
+static void MESSAGE_SetRaw(message_t* msg);
 
 /* Exported functions --------------------------------------------------------*/
 
+/**
+  * @brief  Create a complete message ready for transmission
+  * @param  protocol: protocol type
+  * @param  direction: message direction (TX/RX)
+  * @param  opcode: command/response opcode
+  * @param  data: pointer to data buffer (NULL if no data)
+  * @param  data_length: length of data buffer (0 if no data)
+  * @retval Complete message structure ready for transmission
+  */
+  message_t MESSAGE_Create(proto_name_t protocol, message_direction_t direction, uint8_t opcode, uint8_t* data, uint8_t data_length)
+  {
+      message_t msg;
+      
+      /* Initialize message */
+      MESSAGE_Init(&msg, protocol, direction);
+      
+      /* Set opcode */
+      MESSAGE_SetOpcode(&msg, opcode);
+      
+      /* Set data if provided */
+      MESSAGE_SetData(&msg, data, data_length);
+      
+      /* Build complete raw message */
+      MESSAGE_SetRaw(&msg);
+      
+      return msg;
+  }
+  
 /**
   * @brief  Initialize message structure
   * @param  msg: pointer to message structure
   * @param  protocol: protocol type
   * @param  direction: message direction (TX/RX)
-  * @param  opcode: command/response opcode
   * @retval None
   */
-void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t direction, uint8_t opcode)
+void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t direction)
 {
     msg->protocol = protocol;
     msg->direction = direction;
-    msg->opcode = opcode;
+    msg->opcode = 0;
     msg->data_length = 0;
     msg->length = 0;
     
     /* Clear data buffer */
-    for (uint16_t i = 0; i < 250; i++)
+    for (uint16_t i = 0; i < MESSAGE_MAX_DATA_LENGTH; i++)
     {
         msg->data[i] = 0;
     }
@@ -52,15 +85,15 @@ void MESSAGE_Init(message_t* msg, proto_name_t protocol, message_direction_t dir
 }
 
 /**
-  * @brief  Set message data payload
+  * @brief  Set message data payload (static function)
   * @param  msg: pointer to message structure
   * @param  data: pointer to data buffer
   * @param  data_length: length of data buffer
   * @retval None
   */
-void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length)
+static void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length)
 {
-    if (data != NULL && data_length <= 250)
+    if (data != NULL && data_length <= MESSAGE_MAX_DATA_LENGTH)
     {
         for (uint8_t i = 0; i < data_length; i++)
         {
@@ -75,20 +108,24 @@ void MESSAGE_SetData(message_t* msg, uint8_t* data, uint8_t data_length)
 }
 
 /**
-  * @brief  Construct complete message for transmission
-  * @note   This function is used to construct a complete (raw) message for transmission.
-  *         For both CCNET and ID003 protocols: header | length | opcode | data | crc
-  *         For CCTALK protocol: TODO
-  *         Can be used for GENERIC messages with or without CRC.
+  * @brief  Set message opcode (static function)
   * @param  msg: pointer to message structure
-  *         required: msg->protocol, msg->opcode, msg->data_length
-  *         optional: msg->data, msg->crc_enabled
-  * @retval Updated msg->raw, msg->length
+  * @param  opcode: command/response opcode
+  * @retval None
   */
-void MESSAGE_Construct(message_t* msg)
+static void MESSAGE_SetOpcode(message_t* msg, uint8_t opcode)
+{
+    msg->opcode = opcode;
+}
+
+/**
+  * @brief  Build complete raw message from message structure (static function)
+  * @param  msg: pointer to message structure
+  * @retval None
+  */
+static void MESSAGE_SetRaw(message_t* msg)
 {
     uint16_t pos = 0;
-    uint16_t crc;
     uint8_t header_length;
     
     /* Set header bytes */
@@ -98,7 +135,6 @@ void MESSAGE_Construct(message_t* msg)
             /* Header byte */
             msg->raw[pos++] = 0xFC;
             header_length = 1;
-        
             break;
             
         case PROTO_CCNET:
@@ -106,14 +142,14 @@ void MESSAGE_Construct(message_t* msg)
             msg->raw[pos++] = 0x02;
             msg->raw[pos++] = 0x03;
             header_length = 2;
-
             break;
 
         case PROTO_CCTALK:
             /* Header bytes */
             //TODO: Implement CCTALK header bytes
+            header_length = 0;
             break;
-}  
+    }  
 
     /* Set length field */
     msg->raw[pos++] = header_length + 1 + 1 + msg->data_length + 2; /* header(1 or 2) + length + opcode + data + crc */
@@ -134,6 +170,7 @@ void MESSAGE_Construct(message_t* msg)
     pos = CRC_AppendCRC(msg, pos);
     msg->length = pos;
 }
+
 
 /**
   * @brief  Parse raw UART data and populate message structure

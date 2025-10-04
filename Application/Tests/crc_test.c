@@ -191,7 +191,8 @@ static const uint8_t id003_version_req_resp[] = {
       uint16_t crc_result;
       
       // Test CCNET POLL request
-      MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, 0x33);
+      MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX);
+      msg.opcode = 0x33;
       msg.length = sizeof(ccnet_poll_request);
       for(int i = 0; i < msg.length; i++) {
           msg.raw[i] = ccnet_poll_request[i];
@@ -204,7 +205,8 @@ static const uint8_t id003_version_req_resp[] = {
       (void)crc_result; // Suppress unused variable warning
       
       // Test ID003 STATUS_REQ
-      MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX, 0x11);
+      MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX);
+      msg.opcode = 0x11;
       msg.length = sizeof(id003_status_req);
       for(int i = 0; i < msg.length; i++) {
           msg.raw[i] = id003_status_req[i];
@@ -229,7 +231,8 @@ void CRC_Test_E_ValidateCRC(void)
     (void)result; // Suppress unused variable warning
     
     // Test CCNET POLL request (with valid CRC)
-    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, 0x33);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX);
+    msg.opcode = 0x33;
     uint8_t ccnet_poll_with_crc[] = {0x02, 0x03, 0x06, 0x33, 0xDA, 0x81};
     msg.length = sizeof(ccnet_poll_with_crc);
     for(int i = 0; i < msg.length; i++) {
@@ -240,7 +243,8 @@ void CRC_Test_E_ValidateCRC(void)
     // Expected: result = 1 (CRC_OK)
     
     // Test CCNET Idling response (with valid CRC)
-    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_RX, 0x14);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_RX);
+    msg.opcode = 0x14;
     uint8_t ccnet_idling_with_crc[] = {0x02, 0x03, 0x06, 0x14, 0x67, 0xD4};
     msg.length = sizeof(ccnet_idling_with_crc);
     for(int i = 0; i < msg.length; i++) {
@@ -251,7 +255,8 @@ void CRC_Test_E_ValidateCRC(void)
     // Expected: result = 1 (CRC_OK)
     
     // Test ID003 STATUS_REQ (with valid CRC)
-    MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX, 0x11);
+    MESSAGE_Init(&msg, PROTO_ID003, MSG_DIR_TX);
+    msg.opcode = 0x11;
     uint8_t id003_status_with_crc[] = {0xFC, 0x05, 0x11, 0x27, 0x56};
     msg.length = sizeof(id003_status_with_crc);
     for(int i = 0; i < msg.length; i++) {
@@ -262,7 +267,8 @@ void CRC_Test_E_ValidateCRC(void)
     // Expected: result = 1 (CRC_OK)
     
     // Test CCNET POLL request (with invalid CRC - corrupted)
-    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, 0x33);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX);
+    msg.opcode = 0x33;
     uint8_t ccnet_poll_corrupted[] = {0x02, 0x03, 0x06, 0x33, 0xDA, 0x82}; // Changed last byte
     msg.length = sizeof(ccnet_poll_corrupted);
     for(int i = 0; i < msg.length; i++) {
@@ -278,7 +284,8 @@ void CRC_Test_E_ValidateCRC(void)
     // Expected: result = 0 (CRC_NOT_OK)
     
     // Test with zero length message
-    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX, 0x33);
+    MESSAGE_Init(&msg, PROTO_CCNET, MSG_DIR_TX);
+    msg.opcode = 0x33;
     msg.length = 0;
     output = CRC_Validate(&msg);
     result = (output == CRC_OK);

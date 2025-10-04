@@ -36,7 +36,7 @@ static void LOG_PrintLevel(log_level_t level);
 void LOG_Init(void)
 {
     log_counter = 0;
-    current_log_level = LOG_LEVEL_INFO;
+    current_log_level = LOG_LEVEL_DEBUG;
     log_initialized = 1;
     
     // Wait a bit more to ensure USB is fully ready

@@ -251,4 +251,40 @@ void UART_Init(interface_config_t* interface, message_t* message)
     HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
 }
 
+/**
+  * @brief  Transmit message via UART
+  * @param  interface: Interface configuration
+  * @param  message: Message structure containing raw data to transmit
+  * @retval None
+  */
+void UART_TransmitMessage(interface_config_t* interface, message_t* message)
+{
+    if (interface == NULL || message == NULL) {
+        LOG_Error("UART_TransmitMessage: Invalid parameters");
+        return;
+    }
+    
+    if (interface->phy.uart_handle == NULL) {
+        LOG_Error("UART_TransmitMessage: Invalid UART handle");
+        return;
+    }
+    
+    if (message->length == 0) {
+        LOG_Warn("UART_TransmitMessage: Message length is zero");
+        return;
+    }
+    
+    /* Transmit raw message data */
+
+    LOG_Debug("UART_TransmitMessage: Transmitting upstream message");                                 
+    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, 100); 
+
+    if (status != HAL_OK) {
+    	if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
+    	else LOG_Error("UART_TransmitMessage: Transmission failed");
+    } else {
+        LOG_Info("UART_TransmitMessage: Message transmitted successfully");
+    }
+}
+
 /* Private functions ---------------------------------------------------------*/

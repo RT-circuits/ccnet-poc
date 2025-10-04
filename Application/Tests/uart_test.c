@@ -35,8 +35,9 @@ void UART_TEST_D_CCNET_MessageReception(void);
   */
 void UART_RunAllTests(void)
 {
-    /* Run comprehensive CCNET message reception test */
-    UART_TEST_D_CCNET_MessageReception();
+  UART_TEST_A_BasicTx();  
+  /* Run comprehensive CCNET message reception test */
+    // UART_TEST_D_CCNET_MessageReception();
     
     /* Run UART test B - listen on upstream interface */
     // UART_TEST_B_ListenUpstream();
@@ -91,7 +92,7 @@ void UART_TEST_B_ListenUpstream(void)
     
     /* Initialize message for UART reception */
     /* CCNET: We receive TX commands from bill validator */
-    MESSAGE_Init(&received_message, PROTO_CCNET, MSG_DIR_TX, 0);
+    MESSAGE_Init(&received_message, PROTO_CCNET, MSG_DIR_TX);
     
     /* Initialize UART for upstream interface using new implementation */
     UART_Init(&if_upstream, &received_message);
@@ -124,7 +125,7 @@ void UART_TEST_D_CCNET_MessageReception(void)
     
     /* Initialize test message for UART reception */
     /* CCNET: We receive TX commands from bill validator */
-    MESSAGE_Init(&test_receive_message, PROTO_CCNET, MSG_DIR_TX, 0);
+    MESSAGE_Init(&test_receive_message, PROTO_CCNET, MSG_DIR_TX);
     
     /* Initialize UART for upstream interface */
     UART_Init(&if_upstream, &test_receive_message);

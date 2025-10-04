@@ -147,6 +147,8 @@ typedef struct {
 //###########################################################################################
 
 /* CCNET Status Responses */
+#define CCNET_STATUS_ACK                           0x00
+#define CCNET_STATUS_NAK                           0xFF
 #define CCNET_STATUS_POWER_UP                      0x10
 #define CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR    0x11
 #define CCNET_STATUS_POWER_UP_BILL_IN_STACKER      0x12

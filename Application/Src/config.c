@@ -36,6 +36,7 @@ static uint16_t usb_tx_buffer_pos = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 static void CONFIG_MemCpy(uint8_t* dest, const uint8_t* src, uint32_t length);
+static void CONFIG_SetPhy(interface_config_t* interface);
 static void CONFIG_SetDataLink(interface_config_t* interface);
 static void CONFIG_DisplayBaudrateOptions(void);
 static void CONFIG_DisplayParityOptions(void);
@@ -89,6 +90,8 @@ void CONFIG_Init(void)
     
     /* Load settings from NVM and store in if_upstream and if_downstream */
     CONFIG_LoadFromNVM();
+    CONFIG_SetPhy(&if_upstream);
+    CONFIG_SetPhy(&if_downstream);
     CONFIG_SetDataLink(&if_upstream);
     CONFIG_SetDataLink(&if_downstream);
     
@@ -127,47 +130,73 @@ void CONFIG_LoadFromNVM(void)
 }
 
 /**
-  * @brief  Set protocol-specific datalink configuration for interface
+  * @brief  Set protocol-specific phy (uart) configuration for interface
   * @param  interface: Pointer to interface configuration structure
   * @note   Sets sync bytes, length offset, CRC length, and timeout based on protocol.
   *         Polling period is preserved from flash storage.
   * @retval None
   */
-static void CONFIG_SetDataLink(interface_config_t* interface)
+static void CONFIG_SetPhy(interface_config_t* interface)
 {
-    /* Set data link configuration in interface object based on protocol read from flash */
-    /* only polling period (relevant for downstream) is stored in flash */
     switch (interface->protocol)
     {
         case PROTO_CCNET:
-            interface->datalink.sync_length = 2;
-            interface->datalink.sync_byte1 = 0x02;
-            interface->datalink.sync_byte2 = 0x03;
-            interface->datalink.length_offset = 0;
-            interface->datalink.crc_length = 2;
-            interface->datalink.inter_byte_timeout_ms = 5;
+            interface->phy.uart_handle = &huart1;
             break;
         case PROTO_ID003:
-            interface->datalink.sync_length = 1;
-            interface->datalink.sync_byte1 = 0xFC;
-            interface->datalink.sync_byte2 = 0x00;
-            interface->datalink.length_offset = 0;
-            interface->datalink.crc_length = 2;
-            interface->datalink.inter_byte_timeout_ms = 5;
+            interface->phy.uart_handle = &huart2;
             break;
         case PROTO_CCTALK:
-            interface->datalink.sync_length = 0;
-            interface->datalink.sync_byte1 = 0x00;
-            interface->datalink.sync_byte2 = 0x00;
-            interface->datalink.length_offset = -5;
-            interface->datalink.crc_length = 1;
-            interface->datalink.inter_byte_timeout_ms = 5;
+            interface->phy.uart_handle = &huart3;
             break;
         default:
             LOG_Error("Unknown protocol");
             break;
     }
 }
+
+/**
+  * @brief  Set protocol-specific datalink configuration for interface
+  * @param  interface: Pointer to interface configuration structure
+  * @note   Sets sync bytes, length offset, CRC length, and timeout based on protocol.
+  *         Polling period is preserved from flash storage.
+  * @retval None
+  */
+  static void CONFIG_SetDataLink(interface_config_t* interface)
+  {
+      /* Set data link configuration in interface object based on protocol read from flash */
+      /* only polling period (relevant for downstream) is stored in flash */
+      switch (interface->protocol)
+      {
+          case PROTO_CCNET:
+              interface->datalink.sync_length = 2;
+              interface->datalink.sync_byte1 = 0x02;
+              interface->datalink.sync_byte2 = 0x03;
+              interface->datalink.length_offset = 0;
+              interface->datalink.crc_length = 2;
+              interface->datalink.inter_byte_timeout_ms = 5;
+              break;
+          case PROTO_ID003:
+              interface->datalink.sync_length = 1;
+              interface->datalink.sync_byte1 = 0xFC;
+              interface->datalink.sync_byte2 = 0x00;
+              interface->datalink.length_offset = 0;
+              interface->datalink.crc_length = 2;
+              interface->datalink.inter_byte_timeout_ms = 5;
+              break;
+          case PROTO_CCTALK:
+              interface->datalink.sync_length = 0;
+              interface->datalink.sync_byte1 = 0x00;
+              interface->datalink.sync_byte2 = 0x00;
+              interface->datalink.length_offset = -5;
+              interface->datalink.crc_length = 1;
+              interface->datalink.inter_byte_timeout_ms = 5;
+              break;
+          default:
+              LOG_Error("Unknown protocol");
+              break;
+      }
+  }
 
 /**
   * @brief  Save configuration to non-volatile memory

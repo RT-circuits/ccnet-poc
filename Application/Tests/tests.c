@@ -15,7 +15,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "tests.h"
 #include "crc_test.h"
-#include "message_test.h"
 #include "proto_converter_test.h"
 #include "usb_test.h"
 #include "uart_test.h"
@@ -24,7 +23,6 @@
 
 /* Test configuration - easily enable/disable test suites */
 #define ENABLE_CRC_TESTS           0
-#define ENABLE_MESSAGE_TESTS       0
 #define ENABLE_PROTO_CONVERTER_TESTS 0
 #define ENABLE_USB_TESTS           0
 #define ENABLE_UART_TESTS          0
@@ -40,11 +38,6 @@ void TESTS_RunAll(void)
 #if ENABLE_CRC_TESTS
     /* Run CRC calculation and validation tests */
     CRC_RunAllTests();
-#endif
-
-#if ENABLE_MESSAGE_TESTS
-    /* Run message construction tests */
-    MESSAGE_RunAllTests();
 #endif
 
 #if ENABLE_PROTO_CONVERTER_TESTS

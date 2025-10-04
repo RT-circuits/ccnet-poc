@@ -15,6 +15,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "app.h"
 #include "led.h"
+#include "proto.h"
 #include "uart.h"
 #include "usb.h"
 #include "log.h"
@@ -23,6 +24,12 @@
 #include "nvm.h"
 #include "message.h"
 #include "../Tests/tests.h"
+
+#define LOG_LEVEL LOG_LEVEL_WARN
+
+/* Message sending macros ----------------------------------------------------*/
+#define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length)
+#define RESPOND(opcode, data, length) APP_SendMessage(&if_upstream, opcode, data, length)
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -101,12 +108,13 @@ void APP_Init(void)
     
     /* Initialize Log module */
     LOG_Init();
+    LOG_SetLevel(LOG_LEVEL);
 
     /* Initialize messages for UART reception */
     /* CCNET: We receive TX commands from bill validator */
     /* ID003: We receive RX responses from bill validator */
-    MESSAGE_Init(&upstream_msg, PROTO_CCNET, MSG_DIR_TX, 0);
-    MESSAGE_Init(&downstream_msg, PROTO_ID003, MSG_DIR_RX, 0);
+    MESSAGE_Init(&upstream_msg, PROTO_CCNET, MSG_DIR_TX);
+    MESSAGE_Init(&downstream_msg, PROTO_ID003, MSG_DIR_RX);
     
     /* Run all enabled tests */
     TESTS_RunAll();
@@ -161,12 +169,28 @@ void APP_Process(void)
                 // TODO: process upstream message
                 LOG_Info("CCNET message received OK");
                 LOG_Proto(&upstream_msg);
+                
+                switch (upstream_msg.opcode)
+                {
+                    case CCNET_POLL:
+                        RESPOND(CCNET_STATUS_INITIALIZE, NULL, 0);
+                        break;
+                        
+                    case CCNET_RESET:
+                        REQUEST(ID003_RESET, NULL, 0);
+                        RESPOND(CCNET_STATUS_ACK, NULL, 0);
+                        break;
+                        
+                    default:
+                        LOG_Warn("to do opcode received");
+                        break;
+                }
                 break;
                 
             case MSG_CRC_INVALID:
                 // TODO: send NACK message
                 /* 2.6.4 CCNET documenation*/
-                LOG_Warn("Upstream message CRC invalid");
+                LOG_Warn("Upstream IN message CRC invalid");
                 break;
                 
             case MSG_UNKNOWN_OPCODE:
@@ -210,5 +234,38 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
     
     /* No message received */
     return MSG_NO_MESSAGE;
+}
+
+/**
+  * @brief  Send a message to specified interface
+  * @param  interface: Pointer to interface configuration (upstream or downstream)
+  * @param  opcode: Message opcode
+  * @param  data: Pointer to message data (NULL if no data)
+  * @param  data_length: Length of data (0 if no data)
+  * @retval None
+  */
+void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length)
+{
+    message_t tx_msg;
+    message_direction_t direction;
+    
+    /* Determine direction based on interface */
+    if (interface == &if_downstream) {
+        direction = MSG_DIR_TX;  /* TX to downstream device */
+    } else {
+        direction = MSG_DIR_RX;  /* RX as seen by upstream controller */
+    }
+    
+    /* Create message ready for transmission */
+    tx_msg = MESSAGE_Create(interface->protocol, direction, opcode, data, data_length);
+
+    /* Log the message */
+    LOG_Info("Sending message");
+    LOG_Proto(&tx_msg);
+
+    /* transmit message */
+    UART_TransmitMessage(interface, &tx_msg);
+    
+
 }
 
