@@ -182,7 +182,14 @@ void APP_Process(void)
                         break;
                         
                     default:
-                        LOG_Warn("to do opcode received");
+                        if (PROTO_SupportedCmd(upstream_msg.opcode))
+                        {
+                            LOG_Warn("Supported CCNET opcode received but not implemented");
+                        }
+                        else
+                        {
+                            LOG_Warn("Unsupported CCNET opcode received");
+                        }
                         break;
                 }
                 break;

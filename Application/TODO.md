@@ -244,9 +244,14 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - add macro in app.c for request (downstream) and respond (upstream send messages)
 - also RESPOND ACK if reset was received
 
+### feat: set supported opcodes
+- in proto.h create array PROTO_SUPPORTED_COMMANDS with CCNET opcodes: RESET (0x30) GET STATUS (0x31)POLL (0x33) ENABLE BILL TYPES (0x34) STACK (0x35) RETURN (0x36) IDENTIFICATION (0x37) GET BILL TABLE (0x41)
+- make function PROTO_SupportedCmd returning 1 if opcode is in above array
+
 ### features/bugs todo:
 
 - find solution to store bidirectional lookup list that checks membership as well. Probably make tree arrays. Make sure to stay consistent
+- 
 - are queues needed for transmit? receive?
 - call upstream incoming/outgoing trafic upstream reques/response. Use this for direction in message object
 - add ascii of opcode to message for logging/debugging. See proto.h.

@@ -147,3 +147,32 @@ const proto_mapping_t* PROTO_FindMapping(proto_name_t source_protocol, proto_nam
     
     return NULL; /* Not found */
 }
+
+/* Supported CCNET commands array */
+const uint8_t PROTO_SUPPORTED_COMMANDS[] = {
+    CCNET_RESET,              /* 0x30 - Reset */
+    CCNET_STATUS_REQUEST,     /* 0x31 - Get Status */
+    CCNET_POLL,               /* 0x33 - Poll */
+    CCNET_ENABLE_BILL_TYPES,  /* 0x34 - Enable Bill Types */
+    CCNET_STACK,              /* 0x35 - Stack */
+    CCNET_RETURN,             /* 0x36 - Return */
+    CCNET_IDENTIFICATION,     /* 0x37 - Identification */
+    CCNET_BILL_TABLE          /* 0x41 - Get Bill Table */
+};
+
+/**
+  * @brief  Check if CCNET opcode is supported
+  * @param  opcode: CCNET opcode to check
+  * @retval uint8_t: 1 if supported, 0 if not supported
+  */
+uint8_t PROTO_SupportedCmd(uint8_t opcode)
+{
+    for (uint8_t i = 0; i < sizeof(PROTO_SUPPORTED_COMMANDS); i++)
+    {
+        if (PROTO_SUPPORTED_COMMANDS[i] == opcode)
+        {
+            return 1; /* Supported */
+        }
+    }
+    return 0; /* Not supported */
+}

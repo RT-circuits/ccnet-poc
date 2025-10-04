@@ -232,6 +232,7 @@ void PROTO_Process(uint8_t* data, uint16_t length);
 void PROTO_SendMessage(uint8_t* data, uint16_t length);
 uint8_t PROTO_MapOpcode(proto_name_t source_protocol, proto_name_t target_protocol, uint8_t source_opcode, proto_map_direction_t direction);
 const proto_mapping_t* PROTO_FindMapping(proto_name_t source_protocol, proto_name_t target_protocol, uint8_t source_opcode, proto_map_direction_t direction);
+uint8_t PROTO_SupportedCmd(uint8_t opcode);
 
 #ifdef __cplusplus
 }
