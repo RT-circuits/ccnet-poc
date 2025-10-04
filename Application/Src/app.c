@@ -25,7 +25,7 @@
 #include "message.h"
 #include "../Tests/tests.h"
 
-#define LOG_LEVEL LOG_LEVEL_WARN
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 /* Message sending macros ----------------------------------------------------*/
 #define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length)
@@ -214,10 +214,8 @@ void APP_Process(void)
         }
     }
 
-
-    
-    /* Process USB VCP communication */
-    USB_Process();
+    /* Flush USB TX ring buffer */
+    USB_Flush();
     
     USB_ProcessStatusMessage();
 }

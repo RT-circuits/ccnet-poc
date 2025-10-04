@@ -24,7 +24,7 @@
 /* Test configuration - easily enable/disable test suites */
 #define ENABLE_CRC_TESTS           0
 #define ENABLE_PROTO_CONVERTER_TESTS 0
-#define ENABLE_USB_TESTS           0
+#define ENABLE_USB_TESTS           1
 #define ENABLE_UART_TESTS          0
 
 /* Exported functions --------------------------------------------------------*/

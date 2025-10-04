@@ -14,29 +14,19 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "usb.h"
+#include "usbd_cdc_if.h"
 
 /* USB constants */
 #define USBD_OK 0
-
-/* Forward declaration for CDC functions */
-uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
-
-
-/* Simple strlen implementation */
-static uint16_t my_strlen(const char* str)
-{
-    uint16_t len = 0;
-    while (str[len] != '\0') {
-        len++;
-    }
-    return len;
-}
+#define USB_TX_RINGBUFFER_SIZE 2048
 
 /* Private variables ---------------------------------------------------------*/
-static uint32_t usb_tx_counter = 0;
-static uint32_t usb_rx_counter = 0;
-static uint8_t usb_connected = 0;
-static uint8_t usb_tx_busy = 0;
+
+/* USB TX Ring Buffer */
+static uint8_t usb_tx_buffer[USB_TX_RINGBUFFER_SIZE];
+static uint16_t usb_tx_head = 0;
+static uint16_t usb_tx_tail = 0;
+static uint8_t hostReadyFlag = 1; /* Start as ready */
 
 /* Input line buffer for configuration menu only */
 #define USB_INPUT_BUFFER_SIZE 32
@@ -48,6 +38,58 @@ static uint8_t usb_input_ready = 0;
 static uint32_t last_usb_status_message_time = 0;
 
 /* Private function prototypes -----------------------------------------------*/
+static uint16_t my_strlen(const char* str);
+
+/* Callback functions --------------------------------------------------------*/
+
+/**
+  * @brief  CDC Transmission Complete Callbac - called by USB middleware when data is received (usbd_cdc_if.c)
+  * @retval None
+  */
+void   USB_CDCTransmitCpltHandler(void)
+{
+    // Set ready flag to allow next transmission
+    hostReadyFlag = 1;
+}
+
+/**
+  * @brief  USB CDC receive handler - called by USB middleware when data is received (usbd_cdc_if.c)
+  * @param  Buf: pointer to received data buffer
+  * @param  Len: length of received data
+  * @retval None
+  */
+  void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
+  {
+      if (Buf == NULL || Len == 0)
+      {
+          return;
+      }
+      
+      // Process each received character for configuration menu input only
+      for (uint32_t i = 0; i < Len; i++)
+      {
+          uint8_t ch = Buf[i];
+          
+          // Handle special characters (no echo in interrupt context)
+          if (ch == '\r' || ch == '\n') {
+              // Enter pressed - process the input line
+              if (usb_input_pos > 0) {
+                  usb_input_buffer[usb_input_pos] = '\0'; // Null terminate
+                  usb_input_ready = 1;
+              }
+          } else if (ch == '\b' || ch == 127) {
+              // Backspace - remove last character
+              if (usb_input_pos > 0) {
+                  usb_input_pos--;
+              }
+          } else if (ch >= 32 && ch <= 126) {
+              // Printable character - add to input buffer
+              if (usb_input_pos < USB_INPUT_BUFFER_SIZE - 1) {
+                  usb_input_buffer[usb_input_pos++] = ch;
+              }
+          }
+      }
+  }
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -59,22 +101,14 @@ void USB_Init(void)
 {
     // USB device is already initialized in main.c via MX_USB_Device_Init()
 
-    // Just reset our counters
-    usb_tx_counter = 0;
-    usb_rx_counter = 0;
-    usb_connected = 1; // Assume connected after init
+    // Initialize ring buffer
+    usb_tx_head = 0;
+    usb_tx_tail = 0;
+    hostReadyFlag = 1; /* Start as ready */
+
 }
 
-/**
-  * @brief  Process USB VCP communication
-  * @retval None
-  */
-void USB_Process(void)
-{
-    // Check if USB is connected and configured
-    // For now, assume connected if USB device exists
-    usb_connected = 1; // Will work when USB is properly connected
-}
+
 
 /**
   * @brief  Transmit string via USB VCP
@@ -83,12 +117,9 @@ void USB_Process(void)
   */
 void USB_TransmitString(const char* str)
 {
+    if (str == NULL) return;
     uint16_t length = my_strlen(str);
-    CDC_Transmit_FS((uint8_t*)str, length);
-    usb_tx_counter++;
-    
-    // No blocking delay - let USB handle transmission asynchronously
-    HAL_Delay(3);
+    USB_Tx((uint8_t*)str, length);
 }
 
 /**
@@ -99,61 +130,13 @@ void USB_TransmitString(const char* str)
   */
 void USB_TransmitBytes(uint8_t* data, uint16_t length)
 {
-    CDC_Transmit_FS(data, length);
-    usb_tx_counter++;
-    
-    // No blocking delay - let USB handle transmission asynchronously
+    if (data == NULL || length == 0) return;
+    USB_Tx(data, length);
 }
 
-/**
-  * @brief  Check if USB VCP is connected
-  * @retval 1 if connected, 0 if not connected
-  */
-uint8_t USB_IsConnected(void)
-{
-    return usb_connected;
-}
+
 
 /* Private functions ---------------------------------------------------------*/
-
-/**
-  * @brief  USB CDC receive handler - called by USB middleware when data is received
-  * @param  Buf: pointer to received data buffer
-  * @param  Len: length of received data
-  * @retval None
-  */
-void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
-{
-    if (Buf == NULL || Len == 0)
-    {
-        return;
-    }
-    
-    // Process each received character for configuration menu input only
-    for (uint32_t i = 0; i < Len; i++)
-    {
-        uint8_t ch = Buf[i];
-        
-        // Handle special characters (no echo in interrupt context)
-        if (ch == '\r' || ch == '\n') {
-            // Enter pressed - process the input line
-            if (usb_input_pos > 0) {
-                usb_input_buffer[usb_input_pos] = '\0'; // Null terminate
-                usb_input_ready = 1;
-            }
-        } else if (ch == '\b' || ch == 127) {
-            // Backspace - remove last character
-            if (usb_input_pos > 0) {
-                usb_input_pos--;
-            }
-        } else if (ch >= 32 && ch <= 126) {
-            // Printable character - add to input buffer
-            if (usb_input_pos < USB_INPUT_BUFFER_SIZE - 1) {
-                usb_input_buffer[usb_input_pos++] = ch;
-            }
-        }
-    }
-}
 
 
 /**
@@ -236,3 +219,66 @@ void USB_ProcessStatusMessage(void)
     }
 }
 
+/**
+  * @brief  Add data to USB TX ring buffer
+  * @param  buffer: pointer to data buffer
+  * @param  length: length of data to add
+  * @retval None
+  */
+void USB_Tx(uint8_t* buffer, uint16_t length)
+{
+    if (buffer == NULL || length == 0) return;
+    
+    for (uint16_t i = 0; i < length; i++)
+    {
+        uint16_t next_head = (usb_tx_head + 1) % USB_TX_RINGBUFFER_SIZE;
+        
+        /* Check if buffer is full */
+        if (next_head == usb_tx_tail) break; /* Buffer full, drop data */
+        
+        usb_tx_buffer[usb_tx_head] = buffer[i];
+        usb_tx_head = next_head;
+    }
+}
+
+/**
+  * @brief  Flush USB TX ring buffer if host is ready
+  * @retval None
+  */
+void USB_Flush(void)
+{
+    if (!hostReadyFlag || usb_tx_head == usb_tx_tail) return; /* Host not ready or no data */
+    
+    /* Calculate how much data to send */
+    uint16_t data_length;
+    if (usb_tx_head > usb_tx_tail)
+    {
+        /* Linear case: data from tail to head */
+        data_length = usb_tx_head - usb_tx_tail;
+        
+        /* Send data */
+        CDC_Transmit_FS(&usb_tx_buffer[usb_tx_tail], data_length);
+        usb_tx_tail += data_length;
+        hostReadyFlag = 0; /* Will be set to 1 by USB_CDCTransmitCpltHandler callback */
+    }
+    else
+    {
+        /* Wrap-around case: data from tail to end of buffer */
+        data_length = USB_TX_RINGBUFFER_SIZE - usb_tx_tail;
+        
+        /* Send data */
+        CDC_Transmit_FS(&usb_tx_buffer[usb_tx_tail], data_length);
+        usb_tx_tail = (usb_tx_tail + data_length) % USB_TX_RINGBUFFER_SIZE;
+        hostReadyFlag = 0; /* Will be set to 1 by USB_CDCTransmitCpltHandler callback */
+    }
+}
+
+/* Simple strlen implementation */
+static uint16_t my_strlen(const char* str)
+{
+    uint16_t len = 0;
+    while (str[len] != '\0') {
+        len++;
+    }
+    return len;
+}

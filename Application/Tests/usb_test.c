@@ -15,6 +15,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usb_test.h"
 #include "usb.h"
+#include "log.h"
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -56,10 +57,33 @@ void USB_Test_1000ByteString(void)
 }
 
 /**
+  * @brief  Test USB FIFO ring buffer with incremental messages
+  * @retval None
+  */
+void USB_Test_FifoRingBuffer(void)
+{
+	HAL_Delay(100);
+    LOG_Info("USB FIFO Ring Buffer Test");
+    USB_Flush();
+    
+    /* Send 100 test messages */
+    for (uint8_t i = 48; i < 128; i++) /* ASCII starting with '0' */
+    {
+        USB_Tx((uint8_t*)"test message", sizeof("test message")-1);
+        USB_Tx((uint8_t*)&i, 1);
+        USB_Tx((uint8_t*)"\r\n", 2);
+        USB_Flush();
+    }
+    HAL_Delay(100);
+    LOG_Info("USB FIFO test completed");
+}
+
+/**
   * @brief  Run all USB tests
   * @retval None
   */
 void USB_RunAllTests(void)
 {
-    USB_Test_1000ByteString();
+//    USB_Test_1000ByteString();
+    USB_Test_FifoRingBuffer();
 }

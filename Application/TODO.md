@@ -248,6 +248,16 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 - in proto.h create array PROTO_SUPPORTED_COMMANDS with CCNET opcodes: RESET (0x30) GET STATUS (0x31)POLL (0x33) ENABLE BILL TYPES (0x34) STACK (0x35) RETURN (0x36) IDENTIFICATION (0x37) GET BILL TABLE (0x41)
 - make function PROTO_SupportedCmd returning 1 if opcode is in above array
 
+### feat: usb fifo
+- create tx ringbuffer in usb.c. length 2048 (#define)
+- api call: USB_Tx(), takes buffer and length as arguments
+- api call: USB_Flush(), called from main loop in app.c. CDC_Transmit_FS if ringbuffer is not empty (head!=tail) and USB host ready
+- usb host ready can be found via a callback. Check documentation
+- usb test: 100 x USB_Tx("test message", sizeof()), followed by by USB_Tx of incremental number, follwed by USB_Tx of \r\n
+- keep this as light as possible
+
+### fix: log.c to use new usb_tx fifo
+
 ### features/bugs todo:
 
 - find solution to store bidirectional lookup list that checks membership as well. Probably make tree arrays. Make sure to stay consistent

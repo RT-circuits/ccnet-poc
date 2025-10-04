@@ -32,14 +32,15 @@ extern "C" {
 
 /* Exported functions prototypes ---------------------------------------------*/
 void USB_Init(void);
-void USB_Process(void);
 void USB_TransmitString(const char* str);
 void USB_TransmitBytes(uint8_t* data, uint16_t length);
-uint8_t USB_IsConnected(void);
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len);
 uint8_t USB_IsInputReady(void);
 uint8_t USB_GetInputLine(char* buffer, uint8_t max_length);
 void USB_ProcessStatusMessage(void);
+void USB_Tx(uint8_t* buffer, uint16_t length);
+void USB_Flush(void);
+void USB_CDCTransmitCpltHandler(void);
 
 #ifdef __cplusplus
 }
