@@ -73,6 +73,7 @@ interface_config_t if_downstream = {
 
 /* Private function prototypes -----------------------------------------------*/
 message_parse_result_t APP_CheckForUpstreamMessage(void);
+static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -148,6 +149,7 @@ void APP_Init(void)
 void APP_Process(void)
 {
     message_parse_result_t msg_received_status;
+    uint8_t downstream_opcode;
 
     /* Process config/reset button */
     BTN_ProcessConfigResetButton();
@@ -178,7 +180,14 @@ void APP_Process(void)
                         
                     case CCNET_RESET:
                         REQUEST(ID003_RESET, NULL, 0);
-                        RESPOND(CCNET_STATUS_ACK, NULL, 0);
+                        if ((downstream_opcode = APP_WaitForDownstreamMessage(10)) != MSG_NO_MESSAGE)
+                        {
+                            RESPOND(CCNET_STATUS_ACK, NULL, 0);
+                        }
+                        else
+                        {
+                            RESPOND(CCNET_STATUS_NAK, NULL, 0);
+                        }
                         break;
                         
                     default:
@@ -239,6 +248,35 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
     
     /* No message received */
     return MSG_NO_MESSAGE;
+}
+
+/**
+  * @brief  Wait for downstream message with timeout
+  * @param  timeout_ms: Timeout in milliseconds
+  * @retval message_parse_result_t: MSG_NO_MESSAGE if timeout, or parse result
+  */
+static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
+{
+    uint32_t start_tick = HAL_GetTick();
+    
+    while (1)
+    {
+        /* Check for downstream data and parse if available */
+        if (UART_CheckForDownstreamData())
+        {
+            /* Parse the received message */
+            MESSAGE_Parse(&downstream_msg);
+            /* return opcode */
+            return downstream_msg.opcode;
+        }
+        
+        /* Check if timeout has occurred */
+        if ((HAL_GetTick() - start_tick) >= timeout_ms)
+        {
+            /* Timeout occurred */
+            return MSG_NO_MESSAGE;    /* 0x00 is not a valid id003 opcode */
+        }
+    }
 }
 
 /**

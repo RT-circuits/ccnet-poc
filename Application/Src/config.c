@@ -953,7 +953,7 @@ static void CONFIG_DisplayEnterChoice(uint8_t max_choice)
     num_str[pos] = '\0';
     USB_TransmitString(num_str);
     USB_TransmitString("): ");
-    HAL_Delay(100); // Give time for message to send
+    HAL_Delay(100); // Give time for message to send2
     USB_Flush();
 }
 
