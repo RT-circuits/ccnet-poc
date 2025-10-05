@@ -65,8 +65,6 @@ void CONFIG_LoadFromNVM(void);
 void CONFIG_SaveToNVM(void);
 void CONFIG_ShowMenu(void);
 void CONFIG_ProcessMenu(void);
-void CONFIG_FlushBuffer(void);
-void CONFIG_BufferWrite(const char* str);
 
 #ifdef __cplusplus
 }

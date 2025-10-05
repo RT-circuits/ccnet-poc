@@ -17,6 +17,7 @@
 #include "led.h"
 #include "config.h"
 #include "app.h"
+#include "usb.h"
 
 /* Private variables ---------------------------------------------------------*/
 static config_reset_button_t cr_button = {0};
@@ -107,8 +108,8 @@ void BTN_ProcessConfigResetButton(void)
             LED_Flash(&hled2, CONFIG_RESET_LED_FLASH_MS);
             
             // Restart MCU
-            CONFIG_BufferWrite("\r\n=== LONG PRESS DETECTED - RESTARTING MCU ===\r\n");
-            CONFIG_FlushBuffer();
+            USB_TransmitString("\r\n=== LONG PRESS DETECTED - RESTARTING MCU ===\r\n");
+            USB_Flush();
             HAL_Delay(100); // Give time for message to send
             APP_MCUReset();
         }

@@ -28,10 +28,6 @@ extern LED_HandleTypeDef hled3;
 /* Global configuration settings */
 config_settings_t g_config;
 
-/* USB transmit buffer */
-#define USB_TX_BUFFER_SIZE 1000
-static char usb_tx_buffer[USB_TX_BUFFER_SIZE];
-static uint16_t usb_tx_buffer_pos = 0;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,8 +54,7 @@ static void CONFIG_UpdateBillTable(void);
 static void CONFIG_UpdateUsbLogging(void);
 static void CONFIG_UpdateProtocolLogging(void);
 static void CONFIG_DisplaySeparator(void);
-static void CONFIG_BufferFlush(void);
-static void CONFIG_BufferCheck(void);
+static void CONFIG_DisplayEnterChoice(uint8_t max_choice);
 static uint8_t CONFIG_WaitForInput(void);
 static uint8_t CONFIG_ParseChoice(const char* input, uint8_t min, uint8_t max);
 static void CONFIG_ExitMenu(void);
@@ -216,22 +211,19 @@ void CONFIG_SaveToNVM(void)
         result = NVM_WriteConfigData(buffer, buffer_size);
         if (result == NVM_OK)
         {
-            CONFIG_BufferWrite("Configuration saved successfully!\r\n");
+            USB_TransmitString("Configuration saved successfully!\r\n");
         }
         else
         {
             LOG_Error("Failed to save configuration to NVM");
-            CONFIG_BufferWrite("Error: Failed to save configuration!\r\n");
+            USB_TransmitString("Error: Failed to save configuration!\r\n");
         }
     }
     else
     {
         LOG_Error("Failed to serialize configuration");
-        CONFIG_BufferWrite("Error: Failed to serialize configuration!\r\n");
+        USB_TransmitString("Error: Failed to serialize configuration!\r\n");
     }
-    
-    // Flush buffer when save is complete
-    CONFIG_FlushBuffer();
 }
 
 void CONFIG_ShowMenu(void)
@@ -239,13 +231,12 @@ void CONFIG_ShowMenu(void)
     CONFIG_ShowConfiguration();
     HAL_Delay(100); /* 100ms delay to ensure the configuration is displayed */
     
-    CONFIG_BufferWrite("11. Exit and Restart\r\n");
-    CONFIG_BufferWrite("12. Save, Exit and Restart\r\n");
-    CONFIG_BufferWrite("==========================\r\n");
-    CONFIG_BufferWrite("Enter choice (1-12): ");
-    
-    // Flush buffer when complete
-    CONFIG_FlushBuffer();
+    USB_TransmitString("11. Exit and Restart\r\n");
+    USB_TransmitString("12. Save, Exit and Restart\r\n");
+    USB_TransmitString("==========================\r\n");
+    CONFIG_DisplayEnterChoice(12);
+    HAL_Delay(100);
+    USB_Flush();
 }
 
 /**
@@ -254,48 +245,45 @@ void CONFIG_ShowMenu(void)
   */
 static void CONFIG_ShowConfiguration(void)
 {
-    CONFIG_BufferWrite("\r\n=== CONFIGURATION ===\r\n");
-    CONFIG_BufferWrite("1.  Upstream Protocol        : CCNET - fixed\r\n");
+    USB_TransmitString("\r\n=== CONFIGURATION ===\r\n");
+    USB_TransmitString("1.  Upstream Protocol        : CCNET - fixed\r\n");
     
-    CONFIG_BufferWrite("2.  Upstream Baudrate        : ");
+    USB_TransmitString("2.  Upstream Baudrate        : ");
     CONFIG_DisplayBaudrate(g_config.upstream->phy.baudrate);
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("3.  Upstream Parity          : ");
+    USB_TransmitString("3.  Upstream Parity          : ");
     CONFIG_DisplayParity(g_config.upstream->phy.parity);
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("4.  Downstream Protocol      : ");
+    USB_TransmitString("4.  Downstream Protocol      : ");
     CONFIG_DisplayProtocol(g_config.downstream->protocol);
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("5.  Downstream Baudrate      : ");
+    USB_TransmitString("5.  Downstream Baudrate      : ");
     CONFIG_DisplayBaudrate(g_config.downstream->phy.baudrate);
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("6.  Downstream Parity        : ");
+    USB_TransmitString("6.  Downstream Parity        : ");
     CONFIG_DisplayParity(g_config.downstream->phy.parity);
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("7.  Downstream Polling       : ");
-    CONFIG_BufferWrite(g_config.downstream->datalink.polling_period_ms == 100 ? "100ms" : 
+    USB_TransmitString("7.  Downstream Polling       : ");
+    USB_TransmitString(g_config.downstream->datalink.polling_period_ms == 100 ? "100ms" : 
                        g_config.downstream->datalink.polling_period_ms == 200 ? "200ms" : 
                        g_config.downstream->datalink.polling_period_ms == 500 ? "500ms" : "1000ms");
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("8.  Bill Table               : Binary\r\n");
+    USB_TransmitString("8.  Bill Table               : Binary\r\n");
     
-    CONFIG_BufferWrite("9.  USB Logging              : ");
-    CONFIG_BufferWrite(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("9.  USB Logging              : ");
+    USB_TransmitString(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
+    USB_TransmitString("\r\n");
     
-    CONFIG_BufferWrite("10. Protocol Logging         : ");
-    CONFIG_BufferWrite(g_config.protocol_logging_verbose ? "Verbose" : "Short");
-    CONFIG_BufferWrite("\r\n");
-    CONFIG_BufferWrite("======================\r\n\r\n");
-    
- // Flush buffer when complete
-    CONFIG_FlushBuffer();
+    USB_TransmitString("10. Protocol Logging         : ");
+    USB_TransmitString(g_config.protocol_logging_verbose ? "Verbose" : "Short");
+    USB_TransmitString("\r\n");
+    USB_TransmitString("======================\r\n\r\n");
 }
 
 /**
@@ -359,8 +347,7 @@ void CONFIG_ProcessMenu(void)
                         CONFIG_ExitMenu();
                         return; // Exit immediately, don't show menu again
                     default:
-                        CONFIG_BufferWrite("Invalid choice!\r\n");
-                        CONFIG_FlushBuffer();
+                        USB_TransmitString("Invalid choice!\r\n");
                         break;
                 }
                 
@@ -369,8 +356,7 @@ void CONFIG_ProcessMenu(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Please enter a number between 1 and 12: ");
-                CONFIG_FlushBuffer();
+                USB_TransmitString("Invalid choice! Please enter a number between 1 and 12: ");
             }
         }
     }
@@ -474,10 +460,9 @@ static void CONFIG_UpdateUpstreamProtocol(void)
   */
 static void CONFIG_UpdateUpstreamBaudrate(void)
 {
-    CONFIG_BufferWrite("\r\nSelect upstream baudrate:\r\n");
+    USB_TransmitString("\r\nSelect upstream baudrate:\r\n");
     CONFIG_DisplayBaudrateOptions();
-    CONFIG_BufferWrite("\r\nEnter choice (1-5): ");
-    CONFIG_FlushBuffer();
+    CONFIG_DisplayEnterChoice(5);
     
     // Wait for user input
     CONFIG_WaitForInput();
@@ -498,16 +483,15 @@ static void CONFIG_UpdateUpstreamBaudrate(void)
         }
         else
         {
-            CONFIG_BufferWrite("Invalid choice! Using default (9600).\r\n");
+            USB_TransmitString("Invalid choice! Using default (9600).\r\n");
             g_config.upstream->phy.baudrate = 9600;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
+        USB_TransmitString("No input received. Using default (9600).\r\n");
         g_config.upstream->phy.baudrate = 9600;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -516,10 +500,9 @@ static void CONFIG_UpdateUpstreamBaudrate(void)
   */
 static void CONFIG_UpdateUpstreamParity(void)
 {
-    CONFIG_BufferWrite("\r\nSelect upstream parity:\r\n");
+    USB_TransmitString("\r\nSelect upstream parity:\r\n");
     CONFIG_DisplayParityOptions();
-    CONFIG_BufferWrite("\r\nEnter choice (1-3): ");
-    CONFIG_FlushBuffer();
+    CONFIG_DisplayEnterChoice(3);
     
     // Wait for user input
     CONFIG_WaitForInput();
@@ -538,16 +521,15 @@ static void CONFIG_UpdateUpstreamParity(void)
         }
         else
         {
-            CONFIG_BufferWrite("Invalid choice! Using default (None).\r\n");
+            USB_TransmitString("Invalid choice! Using default (None).\r\n");
             g_config.upstream->phy.parity = UART_PARITY_NONE;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (None).\r\n");
+        USB_TransmitString("No input received. Using default (None).\r\n");
         g_config.upstream->phy.parity = UART_PARITY_NONE;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -556,10 +538,9 @@ static void CONFIG_UpdateUpstreamParity(void)
   */
 static void CONFIG_UpdateDownstreamProtocol(void)
 {
-    CONFIG_BufferWrite("\r\nSelect downstream protocol:\r\n");
+    USB_TransmitString("\r\nSelect downstream protocol:\r\n");
     CONFIG_DisplayProtocolOptions();
-    CONFIG_BufferWrite("\r\nEnter choice (1-2): ");
-    CONFIG_FlushBuffer();
+    CONFIG_DisplayEnterChoice(2);
     
     // Wait for user input
     CONFIG_WaitForInput();
@@ -577,16 +558,15 @@ static void CONFIG_UpdateDownstreamProtocol(void)
         }
         else
         {
-            CONFIG_BufferWrite("Invalid choice! Using default (ID003).\r\n");
+            USB_TransmitString("Invalid choice! Using default (ID003).\r\n");
             g_config.downstream->protocol = PROTO_ID003;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (ID003).\r\n");
+        USB_TransmitString("No input received. Using default (ID003).\r\n");
         g_config.downstream->protocol = PROTO_ID003;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -595,10 +575,9 @@ static void CONFIG_UpdateDownstreamProtocol(void)
   */
 static void CONFIG_UpdateDownstreamBaudrate(void)
 {
-    CONFIG_BufferWrite("\r\nSelect downstream baudrate:\r\n");
+    USB_TransmitString("\r\nSelect downstream baudrate:\r\n");
     CONFIG_DisplayBaudrateOptions();
-    CONFIG_BufferWrite("\r\nEnter choice (1-5): ");
-    CONFIG_FlushBuffer();
+    CONFIG_DisplayEnterChoice(5);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -620,22 +599,21 @@ static void CONFIG_UpdateDownstreamBaudrate(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Using default (9600).\r\n");
+                USB_TransmitString("Invalid choice! Using default (9600).\r\n");
                 g_config.downstream->phy.baudrate = 9600;
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
+            USB_TransmitString("No input received. Using default (9600).\r\n");
             g_config.downstream->phy.baudrate = 9600;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (9600).\r\n");
+        USB_TransmitString("No input received. Using default (9600).\r\n");
         g_config.downstream->phy.baudrate = 9600;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -644,10 +622,9 @@ static void CONFIG_UpdateDownstreamBaudrate(void)
   */
 static void CONFIG_UpdateDownstreamParity(void)
 {
-    CONFIG_BufferWrite("\r\nSelect downstream parity:\r\n");
+    USB_TransmitString("\r\nSelect downstream parity:\r\n");
     CONFIG_DisplayParityOptions();
-    CONFIG_BufferWrite("\r\nEnter choice (1-3): ");
-    CONFIG_FlushBuffer();
+    CONFIG_DisplayEnterChoice(3);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -667,22 +644,21 @@ static void CONFIG_UpdateDownstreamParity(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Using default (Even).\r\n");
+                USB_TransmitString("Invalid choice! Using default (Even).\r\n");
                 g_config.downstream->phy.parity = UART_PARITY_EVEN;
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Using default (Even).\r\n");
+            USB_TransmitString("No input received. Using default (Even).\r\n");
             g_config.downstream->phy.parity = UART_PARITY_EVEN;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (Even).\r\n");
+        USB_TransmitString("No input received. Using default (Even).\r\n");
         g_config.downstream->phy.parity = UART_PARITY_EVEN;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -691,13 +667,12 @@ static void CONFIG_UpdateDownstreamParity(void)
   */
 static void CONFIG_UpdateDownstreamPolling(void)
 {
-    CONFIG_BufferWrite("\r\nSelect downstream polling period:\r\n");
-    CONFIG_BufferWrite("1. 100ms\r\n");
-    CONFIG_BufferWrite("2. 200ms\r\n");
-    CONFIG_BufferWrite("3. 500ms\r\n");
-    CONFIG_BufferWrite("4. 1000ms\r\n");
-    CONFIG_BufferWrite("\r\nEnter choice (1-4): ");
-    CONFIG_FlushBuffer();
+    USB_TransmitString("\r\nSelect downstream polling period:\r\n");
+    USB_TransmitString("1. 100ms\r\n");
+    USB_TransmitString("2. 200ms\r\n");
+    USB_TransmitString("3. 500ms\r\n");
+    USB_TransmitString("4. 1000ms\r\n");
+    CONFIG_DisplayEnterChoice(4);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -718,22 +693,21 @@ static void CONFIG_UpdateDownstreamPolling(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Using default (100ms).\r\n");
+                USB_TransmitString("Invalid choice! Using default (100ms).\r\n");
                 g_config.downstream->datalink.polling_period_ms = 100;
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Using default (100ms).\r\n");
+            USB_TransmitString("No input received. Using default (100ms).\r\n");
             g_config.downstream->datalink.polling_period_ms = 100;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (100ms).\r\n");
+        USB_TransmitString("No input received. Using default (100ms).\r\n");
         g_config.downstream->datalink.polling_period_ms = 100;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -742,11 +716,10 @@ static void CONFIG_UpdateDownstreamPolling(void)
   */
 static void CONFIG_UpdateBillTable(void)
 {
-    CONFIG_BufferWrite("\r\nCurrent bill table: ");
+    USB_TransmitString("\r\nCurrent bill table: ");
     CONFIG_DisplayBillTableBinary();
-    CONFIG_BufferWrite("\r\n");
-    CONFIG_BufferWrite("Enter new bill table (8 bits, e.g., 10101010): ");
-    CONFIG_FlushBuffer();
+    USB_TransmitString("\r\n");
+    USB_TransmitString("Enter new bill table (8 bits, e.g., 10101010): ");
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -775,23 +748,22 @@ static void CONFIG_UpdateBillTable(void)
             
             if (valid)
             {
-                CONFIG_BufferWrite("Bill table updated successfully.\r\n");
+                USB_TransmitString("Bill table updated successfully.\r\n");
             }
             else
             {
-                CONFIG_BufferWrite("Invalid input! Bill table unchanged.\r\n");
+                USB_TransmitString("Invalid input! Bill table unchanged.\r\n");
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Bill table unchanged.\r\n");
+            USB_TransmitString("No input received. Bill table unchanged.\r\n");
         }
     }
     else
     {
-        CONFIG_BufferWrite("Timeout. Bill table unchanged.\r\n");
+        USB_TransmitString("Timeout. Bill table unchanged.\r\n");
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -800,13 +772,12 @@ static void CONFIG_UpdateBillTable(void)
   */
 static void CONFIG_UpdateUsbLogging(void)
 {
-    CONFIG_BufferWrite("\r\nUSB Logging: ");
-    CONFIG_BufferWrite(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
-    CONFIG_BufferWrite("\r\n");
-    CONFIG_BufferWrite("1. Enable\r\n");
-    CONFIG_BufferWrite("2. Disable\r\n");
-    CONFIG_BufferWrite("\r\nEnter choice (1-2): ");
-    CONFIG_FlushBuffer();
+    USB_TransmitString("\r\nUSB Logging: ");
+    USB_TransmitString(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
+    USB_TransmitString("\r\n");
+    USB_TransmitString("1. Enable\r\n");
+    USB_TransmitString("2. Disable\r\n");
+    CONFIG_DisplayEnterChoice(2);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -821,22 +792,21 @@ static void CONFIG_UpdateUsbLogging(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Using default (Disabled).\r\n");
+                USB_TransmitString("Invalid choice! Using default (Disabled).\r\n");
                 g_config.usb_logging_enabled = 0;
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Using default (Disabled).\r\n");
+            USB_TransmitString("No input received. Using default (Disabled).\r\n");
             g_config.usb_logging_enabled = 0;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (Disabled).\r\n");
+        USB_TransmitString("No input received. Using default (Disabled).\r\n");
         g_config.usb_logging_enabled = 0;
     }
-    CONFIG_FlushBuffer();
 }
 
 /**
@@ -845,13 +815,12 @@ static void CONFIG_UpdateUsbLogging(void)
   */
 static void CONFIG_UpdateProtocolLogging(void)
 {
-    CONFIG_BufferWrite("\r\nProtocol Logging: ");
-    CONFIG_BufferWrite(g_config.protocol_logging_verbose ? "Verbose" : "Short");
-    CONFIG_BufferWrite("\r\n");
-    CONFIG_BufferWrite("1. Short\r\n");
-    CONFIG_BufferWrite("2. Verbose\r\n");
-    CONFIG_BufferWrite("\r\nEnter choice (1-2): ");
-    CONFIG_FlushBuffer();
+    USB_TransmitString("\r\nProtocol Logging: ");
+    USB_TransmitString(g_config.protocol_logging_verbose ? "Verbose" : "Short");
+    USB_TransmitString("\r\n");
+    USB_TransmitString("1. Short\r\n");
+    USB_TransmitString("2. Verbose\r\n");
+    CONFIG_DisplayEnterChoice(2);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -866,32 +835,23 @@ static void CONFIG_UpdateProtocolLogging(void)
             }
             else
             {
-                CONFIG_BufferWrite("Invalid choice! Using default (Disabled).\r\n");
+                USB_TransmitString("Invalid choice! Using default (Disabled).\r\n");
                 g_config.protocol_logging_verbose = 0;
             }
         }
         else
         {
-            CONFIG_BufferWrite("No input received. Using default (Short).\r\n");
+            USB_TransmitString("No input received. Using default (Short).\r\n");
             g_config.protocol_logging_verbose = 0;
         }
     }
     else
     {
-        CONFIG_BufferWrite("No input received. Using default (Short).\r\n");
+        USB_TransmitString("No input received. Using default (Short).\r\n");
         g_config.protocol_logging_verbose = 0;
     }
-    CONFIG_FlushBuffer();
 }
 
-/**
-  * @brief  Flush USB transmit buffer (public function)
-  * @retval None
-  */
-void CONFIG_FlushBuffer(void)
-{
-    CONFIG_BufferFlush();
-}
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -901,11 +861,11 @@ void CONFIG_FlushBuffer(void)
   */
 static void CONFIG_DisplayBaudrateOptions(void)
 {
-    CONFIG_BufferWrite("1. 9600\r\n");
-    CONFIG_BufferWrite("2. 19200\r\n");
-    CONFIG_BufferWrite("3. 38400\r\n");
-    CONFIG_BufferWrite("4. 57600\r\n");
-    CONFIG_BufferWrite("5. 115200\r\n");
+    USB_TransmitString("1. 9600\r\n");
+    USB_TransmitString("2. 19200\r\n");
+    USB_TransmitString("3. 38400\r\n");
+    USB_TransmitString("4. 57600\r\n");
+    USB_TransmitString("5. 115200\r\n");
 }
 
 /**
@@ -914,9 +874,9 @@ static void CONFIG_DisplayBaudrateOptions(void)
   */
 static void CONFIG_DisplayParityOptions(void)
 {
-    CONFIG_BufferWrite("1. None\r\n");
-    CONFIG_BufferWrite("2. Even\r\n");
-    CONFIG_BufferWrite("3. Odd\r\n");
+    USB_TransmitString("1. None\r\n");
+    USB_TransmitString("2. Even\r\n");
+    USB_TransmitString("3. Odd\r\n");
 }
 
 /**
@@ -925,8 +885,8 @@ static void CONFIG_DisplayParityOptions(void)
   */
 static void CONFIG_DisplayProtocolOptions(void)
 {
-    CONFIG_BufferWrite("1. ID003\r\n");
-    CONFIG_BufferWrite("2. CCTalk\r\n");
+    USB_TransmitString("1. ID003\r\n");
+    USB_TransmitString("2. CCTalk\r\n");
 }
 
 /**
@@ -937,9 +897,9 @@ static void CONFIG_DisplayBillTableBinary(void)
 {
     for (int i = 0; i < 8; i++)
     {
-        CONFIG_BufferWrite(g_config.bill_table[i] ? "1" : "0");
+        USB_TransmitString(g_config.bill_table[i] ? "1" : "0");
     }
-    CONFIG_BufferWrite("\r\n");
+    USB_TransmitString("\r\n");
 }
 
 
@@ -949,53 +909,56 @@ static void CONFIG_DisplayBillTableBinary(void)
   */
 static void CONFIG_DisplaySeparator(void)
 {
-    CONFIG_BufferWrite("--------------------------------\r\n");
+    USB_TransmitString("--------------------------------\r\n");
 }
 
 /**
-  * @brief  Write string to USB transmit buffer
-  * @param  str: string to write to buffer
+  * @brief  Display "Enter choice" message with specified range
+  * @param  max_choice: Maximum choice number (e.g., 12 for "Enter choice (1-12)")
   * @retval None
   */
-void CONFIG_BufferWrite(const char* str)
+static void CONFIG_DisplayEnterChoice(uint8_t max_choice)
 {
-    if (str == NULL) return;
+    USB_TransmitString("\r\nEnter choice (1-");
     
-    // Write string to buffer
-    while (*str != '\0' && usb_tx_buffer_pos < USB_TX_BUFFER_SIZE) {
-        usb_tx_buffer[usb_tx_buffer_pos++] = *str++;
+    // Convert max_choice to string and display
+    char num_str[4]; // Buffer for number string (max 3 digits + null)
+    uint8_t pos = 0;
+    uint8_t temp = max_choice;
+    
+    // Handle zero case
+    if (temp == 0)
+    {
+        num_str[pos++] = '0';
     }
-    
-    // Check if buffer should be flushed
-    CONFIG_BufferCheck();
-}
-
-/**
-  * @brief  Flush USB transmit buffer
-  * @retval None
-  */
-static void CONFIG_BufferFlush(void)
-{
-    if (usb_tx_buffer_pos > 0) {
-        // Send buffer content
-        USB_TransmitBytes((uint8_t*)usb_tx_buffer, usb_tx_buffer_pos);
+    else
+    {
+        // Extract digits in reverse order
+        uint8_t digits[3];
+        uint8_t digit_count = 0;
         
-        // Reset buffer position
-        usb_tx_buffer_pos = 0;
+        while (temp > 0)
+        {
+            digits[digit_count++] = temp % 10;
+            temp /= 10;
+        }
+        
+        // Write digits in correct order
+        for (int8_t i = digit_count - 1; i >= 0; i--)
+        {
+            num_str[pos++] = '0' + digits[i];
+        }
     }
+    
+    num_str[pos] = '\0';
+    USB_TransmitString(num_str);
+    USB_TransmitString("): ");
+    HAL_Delay(100); // Give time for message to send
+    USB_Flush();
 }
 
-/**
-  * @brief  Check if buffer should be flushed
-  * @retval None
-  */
-static void CONFIG_BufferCheck(void)
-{
-    // Flush if buffer is > 900 bytes or buffer is full
-    if (usb_tx_buffer_pos > 900 || usb_tx_buffer_pos >= USB_TX_BUFFER_SIZE) {
-        CONFIG_BufferFlush();
-    }
-}
+
+
 
 /**
   * @brief  Display protocol name
@@ -1007,16 +970,16 @@ static void CONFIG_DisplayProtocol(uint8_t protocol)
     switch (protocol)
     {
         case PROTO_CCNET:
-            CONFIG_BufferWrite("CCNET");
+            USB_TransmitString("CCNET");
             break;
         case PROTO_ID003:
-            CONFIG_BufferWrite("ID003");
+            USB_TransmitString("ID003");
             break;
         case PROTO_CCTALK:
-            CONFIG_BufferWrite("CCTalk");
+            USB_TransmitString("CCTalk");
             break;
         default:
-            CONFIG_BufferWrite("Unknown");
+            USB_TransmitString("Unknown");
             break;
     }
 }
@@ -1028,12 +991,12 @@ static void CONFIG_DisplayProtocol(uint8_t protocol)
   */
 static void CONFIG_DisplayBaudrate(uint32_t baudrate)
 {
-    if (baudrate == 9600) CONFIG_BufferWrite("9600");
-    else if (baudrate == 19200) CONFIG_BufferWrite("19200");
-    else if (baudrate == 38400) CONFIG_BufferWrite("38400");
-    else if (baudrate == 57600) CONFIG_BufferWrite("57600");
-    else if (baudrate == 115200) CONFIG_BufferWrite("115200");
-    else CONFIG_BufferWrite("9600");
+    if (baudrate == 9600) USB_TransmitString("9600");
+    else if (baudrate == 19200) USB_TransmitString("19200");
+    else if (baudrate == 38400) USB_TransmitString("38400");
+    else if (baudrate == 57600) USB_TransmitString("57600");
+    else if (baudrate == 115200) USB_TransmitString("115200");
+    else USB_TransmitString("9600");
 }
 
 /**
@@ -1046,16 +1009,16 @@ static void CONFIG_DisplayParity(uint32_t parity)
     switch (parity)
     {
         case UART_PARITY_NONE:
-            CONFIG_BufferWrite("None");
+            USB_TransmitString("None");
             break;
         case UART_PARITY_EVEN:
-            CONFIG_BufferWrite("Even");
+            USB_TransmitString("Even");
             break;
         case UART_PARITY_ODD:
-            CONFIG_BufferWrite("Odd");
+            USB_TransmitString("Odd");
             break;
         default:
-            CONFIG_BufferWrite("Unknown");
+            USB_TransmitString("Unknown");
             break;
     }
 }
@@ -1119,9 +1082,8 @@ static uint8_t CONFIG_ParseChoice(const char* input, uint8_t min, uint8_t max)
   */
 static void CONFIG_ExitMenu(void)
 {
-    CONFIG_BufferWrite("Exiting configuration menu...\r\n");
-    CONFIG_BufferWrite("Restarting MCU...\r\n");
-    CONFIG_FlushBuffer();
+    USB_TransmitString("Exiting configuration menu...\r\n");
+    USB_TransmitString("Restarting MCU...\r\n");
     
     // Restart the MCU
     HAL_Delay(100);  // Give time for USB transmission to complete
