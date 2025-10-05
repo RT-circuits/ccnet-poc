@@ -24,9 +24,8 @@ static uint8_t uart2_sequence = 0; // 0=first, 1=second, 2=third (infinite)
 static message_t test_receive_message;
 
 
-/* Exported functions --------------------------------------------------------*/
-
-
+/* Private functions --------------------------------------------------------*/
+void UART_TEST_A_BasicTx2(void);
 void UART_TEST_D_CCNET_MessageReception(void);
 
 /**
@@ -35,7 +34,7 @@ void UART_TEST_D_CCNET_MessageReception(void);
   */
 void UART_RunAllTests(void)
 {
-  UART_TEST_A_BasicTx();  
+  UART_TEST_A_BasicTx2();  
   /* Run comprehensive CCNET message reception test */
     // UART_TEST_D_CCNET_MessageReception();
     
@@ -44,36 +43,41 @@ void UART_RunAllTests(void)
     // UART_TEST_C_BlockRx();
 }
 
-void UART_TEST_C_BlockRx(void)
-{
-uint8_t rx_buffer[10];
-extern UART_HandleTypeDef huart1;
 
-  HAL_UART_Receive(&huart1, rx_buffer, 5, 5000);
-
-  LOG_Info("Received uart1 data");
-  while (1){
-    HAL_UART_Receive(&huart1, rx_buffer, 5, 5000);
-    LOG_Info("Received uart1 data");
-    HAL_Delay(100);
-  }
-}
 
 /**
   * @brief  UART test sequence - sends data on all 3 UARTs every 100ms
   * @retval None
   */
-void UART_TEST_A_BasicTx(void)
+  void UART_TEST_A_BasicTx(void)
+  {
+      while (1)
+      {
+          // UART1,2,3: Send 'UART_1' in ASCII
+          HAL_UART_Transmit(&huart1, (uint8_t*)"UART_1", 6, 100);
+          HAL_UART_Transmit(&huart2, (uint8_t*)"UART_2", 6, 100);        
+          HAL_UART_Transmit(&huart3, (uint8_t*)"UART_3", 6, 100);
+          
+          // Wait X ms before next transmission
+          HAL_Delay(10);
+      }
+  }
+
+  /**
+  * @brief  UART DMA test sequence - sends data on 2 UARTs every 100ms
+  * @retval None
+  */
+void UART_TEST_A_BasicTx2(void)
 {
     while (1)
     {
         // UART1,2,3: Send 'UART_1' in ASCII
-        HAL_UART_Transmit(&huart1, (uint8_t*)"UART_1", 6, 100);
-        HAL_UART_Transmit(&huart2, (uint8_t*)"UART_2", 6, 100);        
+        HAL_UART_Transmit_DMA(&huart1, (uint8_t*)"UART_1", 6);
+        HAL_UART_Transmit_DMA(&huart2, (uint8_t*)"UART_2", 6);        
         HAL_UART_Transmit(&huart3, (uint8_t*)"UART_3", 6, 100);
         
         // Wait X ms before next transmission
-        HAL_Delay(10);
+        HAL_Delay(100);
     }
 }
 
@@ -112,6 +116,21 @@ void UART_TEST_B_ListenUpstream(void)
         /* Small delay to prevent busy waiting */
         HAL_Delay(1);
     }
+}
+
+void UART_TEST_C_BlockRx(void)
+{
+uint8_t rx_buffer[10];
+extern UART_HandleTypeDef huart1;
+
+  HAL_UART_Receive(&huart1, rx_buffer, 5, 5000);
+
+  LOG_Info("Received uart1 data");
+  while (1){
+    HAL_UART_Receive(&huart1, rx_buffer, 5, 5000);
+    LOG_Info("Received uart1 data");
+    HAL_Delay(100);
+  }
 }
 
 /**

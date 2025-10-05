@@ -16,6 +16,7 @@
 #include "log.h"
 #include "app.h"
 #include "message.h"
+#include "stm32g4xx_hal_uart.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -54,6 +55,7 @@ UART_Interface_t uart_intf2;
 
 /* Exported variables --------------------------------------------------------*/
 uint8_t downstream_rx_flag = 0;
+
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -273,11 +275,9 @@ void UART_TransmitMessage(interface_config_t* interface, message_t* message)
         LOG_Warn("UART_TransmitMessage: Message length is zero");
         return;
     }
-    
-    /* Transmit raw message data */
 
-    LOG_Debug("UART_TransmitMessage: Transmitting upstream message");                                 
-    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, 100); 
+    /* Transmit raw message data */
+    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, 100);
 
     if (status != HAL_OK) {
     	if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
