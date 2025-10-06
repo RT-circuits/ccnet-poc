@@ -207,7 +207,7 @@ uint8_t UART_CheckForDownstreamData(void)
     /* Process downstream messages */
     if (uart_intf2.data_ready) {
         uart_intf2.data_ready = 0;
-        LOG_Info("UART2 data received");
+        LOG_Debug("UART2 data received");
         return 1; /* Data ready */
     }
     return 0; /* No data */

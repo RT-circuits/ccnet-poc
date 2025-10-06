@@ -159,8 +159,13 @@ void LOG_Proto(const message_t* msg)
             USB_TransmitString(hex_buffer);
             USB_TransmitString(" ");
         }
-        
-        USB_TransmitString("\r\n");
+        if (msg->direction == MSG_DIR_RX)
+        {
+            USB_TransmitString("\r\n\r\n");        }
+        else
+        {
+            USB_TransmitString("\r\n");
+        }
         log_counter++;
     }
 }

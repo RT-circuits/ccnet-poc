@@ -110,6 +110,7 @@ void APP_Init(void);
 void APP_Process(void);
 void APP_MCUReset(void);
 void APP_ShowConfigMenu(void);
+message_parse_result_t APP_CheckForDownstreamMessage(void);
 
 #ifdef __cplusplus
 }

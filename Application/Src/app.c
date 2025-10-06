@@ -90,6 +90,7 @@ interface_config_t if_downstream = {
 
 /* Private function prototypes -----------------------------------------------*/
 message_parse_result_t APP_CheckForUpstreamMessage(void);
+message_parse_result_t APP_CheckForDownstreamMessage(void);
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
 static void APP_ProcessDownstreamPolling(void);
 static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length, uint8_t use_dma);
@@ -183,6 +184,108 @@ void APP_Process(void)
     
     /* Process downstream polling */
     APP_ProcessDownstreamPolling();
+    
+    /* Check for downstream message */
+    if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
+    {
+        /* message received */
+        switch (msg_received_status)
+        {
+            case MSG_OK:
+                // TODO: process downstream message
+                LOG_Debug("ID003 message received OK");
+                LOG_Proto(&downstream_msg);
+                
+                switch (downstream_msg.opcode)
+                {
+                    case ID003_STATUS_ACK:
+                        LOG_Info("Downstream ACK received");
+                        break;
+                        
+                    case ID003_STATUS_IDLING:
+                        LOG_Info("Downstream device idling");
+                        break;
+                        
+                    case ID003_STATUS_ACCEPTING:
+                        LOG_Info("Downstream device accepting bills");
+                        break;
+                        
+                    case ID003_STATUS_ESCROW:
+                        LOG_Info("Downstream device bill in escrow");
+                        break;
+                        
+                    case ID003_STATUS_STACKING:
+                        LOG_Info("Downstream device stacking bill");
+                        break;
+                        
+                    case ID003_STATUS_STACKED:
+                        LOG_Info("Downstream device bill stacked");
+                        break;
+                        
+                    case ID003_STATUS_REJECTING:
+                        LOG_Info("Downstream device rejecting bill");
+                        break;
+                        
+                    case ID003_STATUS_RETURNING:
+                        LOG_Info("Downstream device returning bill");
+                        break;
+                        
+                    case ID003_STATUS_HOLDING:
+                        LOG_Info("Downstream device holding bill");
+                        break;
+                        
+                    case ID003_STATUS_STACKER_FULL:
+                        LOG_Warn("Downstream device stacker full");
+                        break;
+                        
+                    case ID003_STATUS_STACKER_OPEN:
+                        LOG_Warn("Downstream device stacker open");
+                        break;
+                        
+                    case ID003_STATUS_ACCEPTOR_JAM:
+                        LOG_Error("Downstream device acceptor jam");
+                        break;
+                        
+                    case ID003_STATUS_STACKER_JAM:
+                        LOG_Error("Downstream device stacker jam");
+                        break;
+                        
+                    case ID003_STATUS_FAILURE:
+                        LOG_Error("Downstream device failure");
+                        break;
+                        
+                    case ID003_STATUS_COMM_ERROR:
+                        LOG_Error("Downstream device communication error");
+                        break;
+                        
+                    case ID003_STATUS_INVALID_COMMAND:
+                        LOG_Error("Downstream device invalid command");
+                        break;
+                        
+                    default:
+
+                        break;
+                }
+                break;
+                
+            case MSG_CRC_INVALID:
+                // TODO: send NACK message
+                LOG_Warn("Downstream IN message CRC invalid");
+                break;
+                
+            case MSG_UNKNOWN_OPCODE:
+            case MSG_DATA_MISSING_FOR_OPCODE:
+                // TODO: send error message
+                LOG_Warn("Downstream message unknown opcode or data missing for opcode");
+                break;
+                
+            default:
+                // No action needed
+                LOG_Warn("Downstream message parse failed without CRC invalid or unknown opcode or data missing for opcode");
+                break;
+        }
+    }
+    
     /* Check for upstream message */
     if ((msg_received_status = APP_CheckForUpstreamMessage()) != MSG_NO_MESSAGE)
     {
@@ -248,7 +351,7 @@ void APP_Process(void)
     /* Flush USB TX ring buffer */
     USB_Flush();
     
-    USB_ProcessStatusMessage();
+    // USB_ProcessStatusMessage();
 }
 
 
@@ -266,6 +369,23 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
     {
         /* Parse the received message */
         return MESSAGE_Parse(&upstream_msg);
+    }
+    
+    /* No message received */
+    return MSG_NO_MESSAGE;
+}
+
+/**
+  * @brief  Check for downstream message and parse if available
+  * @retval message_parse_result_t: MSG_NO_MESSAGE if no data, or parse result
+  */
+message_parse_result_t APP_CheckForDownstreamMessage(void)
+{
+    /* Check for downstream data and parse if available */
+    if (UART_CheckForDownstreamData())
+    {
+        /* Parse the received message */
+        return MESSAGE_Parse(&downstream_msg);
     }
     
     /* No message received */
