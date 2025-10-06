@@ -283,7 +283,7 @@ void UART_TransmitMessage(interface_config_t* interface, message_t* message)
     	if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
     	else LOG_Error("UART_TransmitMessage: Transmission failed");
     } else {
-        LOG_Info("UART_TransmitMessage: Message transmitted successfully");
+        LOG_Debug("uart: UART_TransmitMessage: OK");
     }
 }
 
