@@ -317,8 +317,10 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
     /* Determine direction based on interface */
     if (interface == &if_downstream) {
         direction = MSG_DIR_TX;  /* TX to downstream device */
+        LED_Flash(&hled2, 10);
     } else {
         direction = MSG_DIR_RX;  /* RX as seen by upstream controller */
+        LED_Flash(&hled1, 10);
     }
     
     /* Create message ready for transmission */

@@ -32,6 +32,8 @@ extern "C" {
 void TIM_Start(void);
 void TIM_Stop(void);
 void TIM_StartWithDuration(uint16_t duration_ms, void (*callback)(void));
+void TIM_StartWithDuration_Timer16(uint16_t duration_ms, void (*callback)(void));
+void TIM_StartWithDuration_Timer17(uint16_t duration_ms, void (*callback)(void));
 void TIM_StopTimer(void);
 
 #ifdef __cplusplus
