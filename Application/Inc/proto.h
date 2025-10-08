@@ -21,43 +21,16 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "proto_types.h"
+
+/* Forward declarations ------------------------------------------------------*/
+typedef struct message_t message_t;
 
 /* Exported types ------------------------------------------------------------*/
 
-/**
-  * @brief  Protocol name enumeration
-  */
-typedef enum
-{
-    PROTO_CCNET = 0,
-    PROTO_ID003,
-    PROTO_CCTALK,
-} proto_name_t;
 
-/**
-  * @brief  Protocol mapping direction
-  */
-typedef enum {
-    MAP_CCNET_TO_ID003,      /* CCNET request -> ID003 request */
-    MAP_ID003_TO_CCNET,      /* ID003 response -> CCNET response */
-    MAP_CCNET_TO_CCTALK,     /* CCNET request -> CCTALK request */
-    MAP_CCTALK_TO_CCNET      /* CCTALK response -> CCNET response */
-} proto_map_direction_t;
 
-/**
-  * @brief  Protocol mapping entry
-  */
-typedef struct {
-    proto_name_t source_protocol;    /* Source protocol (CCNET, ID003, CCTALK) */
-    proto_name_t target_protocol;    /* Target protocol (CCNET, ID003, CCTALK) */
-    uint8_t source_opcode;          /* Source opcode/status */
-    uint8_t target_opcode;          /* Target opcode/status */
-    proto_map_direction_t direction; /* Mapping direction */
-} proto_mapping_t;
 
-/**
-  * @brief  Protocol role enumeration
-  */
 
 
 /* Exported constants --------------------------------------------------------*/
@@ -147,8 +120,8 @@ typedef struct {
 //###########################################################################################
 
 /* CCNET Status Responses */
-#define CCNET_STATUS_ACK                           0x00
-#define CCNET_STATUS_NAK                           0xFF
+#define CCNET_STATUS_ACK                           0x00 // for parsing in message.c only
+#define CCNET_STATUS_NAK                           0xFF // for parsing in message.c only
 #define CCNET_STATUS_POWER_UP                      0x10
 #define CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR    0x11
 #define CCNET_STATUS_POWER_UP_BILL_IN_STACKER      0x12
@@ -173,31 +146,38 @@ typedef struct {
 #define CCNET_STATUS_BILL_RETURNED                 0x82
 
 
-// /* CCNET Reject Reasons (when status = 0x1C) */
-// #define CCNET_REJECT_INSERTION                     0x60
-// #define CCNET_REJECT_MAGNETIC                      0x61
-// #define CCNET_REJECT_REMAINED_BILL_IN_HEAD         0x62
-// #define CCNET_REJECT_MULTIPLYING                   0x63
-// #define CCNET_REJECT_CONVEYING                     0x64
-// #define CCNET_REJECT_IDENTIFICATION                0x65
-// #define CCNET_REJECT_VERIFICATION                  0x66
-// #define CCNET_REJECT_OPTIC                         0x67
-// #define CCNET_REJECT_INHIBIT                       0x68
-// #define CCNET_REJECT_CAPACITY                      0x69
-// #define CCNET_REJECT_OPERATION                     0x6A
-// #define CCNET_REJECT_LENGTH                        0x6C
+/* CCNET Reject Reasons (when status = 0x1C) */
+#define CCNET_REJECT_INSERTION                     0x60
+#define CCNET_REJECT_MAGNETIC                      0x61
+#define CCNET_REJECT_REMAINED_BILL_IN_HEAD         0x62
+#define CCNET_REJECT_MULTIPLYING                   0x63
+#define CCNET_REJECT_CONVEYING                     0x64
+#define CCNET_REJECT_IDENTIFICATION                0x65
+#define CCNET_REJECT_VERIFICATION                  0x66
+#define CCNET_REJECT_OPTIC                         0x67
+#define CCNET_REJECT_INHIBIT                       0x68
+#define CCNET_REJECT_CAPACITY                      0x69
+#define CCNET_REJECT_OPERATION                     0x6A
+#define CCNET_REJECT_LENGTH                        0x6C
 
-// /* CCNET Motor Failure Types (when status = 0x47) */
-// #define CCNET_MOTOR_FAIL_STACK                     0x50
-// #define CCNET_MOTOR_FAIL_TRANSPORT_SPEED           0x51
-// #define CCNET_MOTOR_FAIL_TRANSPORT                 0x52
-// #define CCNET_MOTOR_FAIL_ALIGNING                  0x53
-// #define CCNET_MOTOR_FAIL_INITIAL_CASSETTE          0x54
-// #define CCNET_MOTOR_FAIL_OPTIC_CANAL               0x55
-// #define CCNET_MOTOR_FAIL_MAGNETIC_CANAL            0x56
-// #define CCNET_MOTOR_FAIL_CAPACITANCE_CANAL         0x5F
+/* ID003 Reject Reasons mapping (see page 11/36 of ID003 protocol specification) */
+extern const uint8_t id003_reject_map[];
 
+/* CCNET Motor Failure Types (when status = 0x47) */
+#define CCNET_MOTOR_FAIL_STACK_MOTOR               0x50
+#define CCNET_MOTOR_FAIL_TRANSPORT_SPEED           0x51
+#define CCNET_MOTOR_FAIL_TRANSPORT_MOTOR           0x52
+#define CCNET_MOTOR_FAIL_ALIGNING                  0x53
+#define CCNET_MOTOR_FAIL_INITIAL_CASSETTE          0x54
+#define CCNET_MOTOR_FAIL_OPTIC_CANAL               0x55
+#define CCNET_MOTOR_FAIL_MAGNETIC_CANAL            0x56
+#define CCNET_MOTOR_FAIL_CAPACITANCE_CANAL         0x5F
 
+extern const uint8_t id003_failure_map[];
+
+/* Function declarations ------------------------------------------------------*/
+uint8_t IsSupportedCcnetCommand(uint8_t opcode);
+uint8_t PROTO_IsId003StatusCode(uint8_t status_code);
 
 // /* ID003 Echo Responses */
 // #define ID003_ECHO_ENABLE                          0xC0
@@ -222,17 +202,14 @@ typedef struct {
 
 /* Exported variables --------------------------------------------------------*/
 
-/* Protocol mapping table */
-extern const proto_mapping_t proto_mapping_table[];
-extern const uint16_t PROTO_MAPPING_TABLE_SIZE;
 
 /* Exported functions prototypes ---------------------------------------------*/
 void PROTO_Init(void);
 void PROTO_Process(uint8_t* data, uint16_t length);
 void PROTO_SendMessage(uint8_t* data, uint16_t length);
-uint8_t PROTO_MapOpcode(proto_name_t source_protocol, proto_name_t target_protocol, uint8_t source_opcode, proto_map_direction_t direction);
-const proto_mapping_t* PROTO_FindMapping(proto_name_t source_protocol, proto_name_t target_protocol, uint8_t source_opcode, proto_map_direction_t direction);
-uint8_t PROTO_SupportedCmd(uint8_t opcode);
+
+/* Functions that use message_t (declared after forward declaration) */
+uint8_t PROTO_MapStatusCode(message_t* ds_msg, message_t* us_msg);
 
 #ifdef __cplusplus
 }

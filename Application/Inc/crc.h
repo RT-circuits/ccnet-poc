@@ -21,7 +21,10 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "message.h"
+#include "proto_types.h"
+
+/* Forward declarations ------------------------------------------------------*/
+typedef struct message_t message_t;
 
 /* Exported types ------------------------------------------------------------*/
 

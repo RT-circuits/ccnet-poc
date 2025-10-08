@@ -15,7 +15,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "tests.h"
 #include "crc_test.h"
-#include "proto_converter_test.h"
 #include "usb_test.h"
 #include "uart_test.h"
 

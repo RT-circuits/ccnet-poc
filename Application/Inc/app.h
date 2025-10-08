@@ -21,10 +21,12 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "proto.h"
+#include "proto_types.h"
 #include "message.h"
+#include "proto.h"
 
 /* Exported types ------------------------------------------------------------*/
+
 
 /**
   * @brief  Physical interface polarity enumeration

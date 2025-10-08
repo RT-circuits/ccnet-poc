@@ -258,6 +258,40 @@ Next up: "feature: uart receive test". The comment for that (when finished) shou
 
 ### fix: log.c to use new usb_tx fifo
 
+### feat: wait for downstream message
+- just test this in main loop
+
+### feat: continous poll downstream
+- in APP_process test for donwstream polling period (set in conf to 100/200/500ms) expired and when so:
+- set interval_poll_satus to DS_POLL_SENDING
+- send REQUEST for status (DMA). right after wait <length> clock cycles for dma buffer copy by cpu
+- set to DS_POLL_SENT
+- test at 100 to 1000ms -> works
+- cleanup: create app.c variable protocol_state_t, two instances ds and us. move ds_poll_state to ds.poller_state
+
+### feat: led indication for rx/tx
+- tim.c add timer 16 to have two led timers. led1 is tim16, led2/3 use tim17 to have registered callback from the call triggered 
+- callbacks in led.c 
+- tested works. 10ms bright enough
+
+### feat: receive downstream responses
+- in app.c main loop add UART_CheckForDownstreamData(void)
+- log message and do some first logic
+- clean up LOG_Proto
+==> works
+
+### feat: id003 status response lookup table
+- create uint16_t matrix with m:1 mapping ID003->CCNET in proto.h
+- 8 bit values for mapping, 0xffff for special cases
+- special cases have data byte(s) write switch statement for each case
+- create function updates returns opcode, data and data_length in msg object
+- create function that adds status message to the response queue
+
+### feat: upstream poll response queue
+- some messages like upstream STACKED is an essential response that cannot be overriden by e.g. IDLING
+- put STACKED (and all other critical ones) in a queue and latest regular downstream status behind that 
+- consider putting all responses in a queue
+
 ### features/bugs todo:
 
 - find solution to store bidirectional lookup list that checks membership as well. Probably make tree arrays. Make sure to stay consistent
@@ -280,3 +314,9 @@ Test Validation Points
 ✅ CRC Validation: Uses existing CRC validation system
 ✅ Error Handling: Comprehensive error reporting for all failure modes
 ✅ Statistics Tracking: Real-time success/failure monitoring
+
+circular reference issue:
+proto.h: Defines proto_name_t, forward declares message_t
+message.h: Includes proto.h, defines message_t
+app.h: Includes both proto.h and message.h
+crc.h: Forward declares both types, no circular includes

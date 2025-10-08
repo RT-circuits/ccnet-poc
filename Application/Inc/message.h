@@ -21,7 +21,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "proto.h"
+#include "proto_types.h"
 
 /* Exported types ------------------------------------------------------------*/
 
@@ -52,7 +52,7 @@ typedef enum
 /**
   * @brief  Message structure for protocol handling
   */
-typedef struct {
+typedef struct message_t {
     proto_name_t protocol;        /* Protocol type (PROTO_ID003, PROTO_CCTALK, PROTO_CCNET) */
     message_direction_t direction; /* Message direction (TX/RX) */
     uint8_t opcode;              /* Command/response opcode */

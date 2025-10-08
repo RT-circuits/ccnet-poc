@@ -23,6 +23,7 @@
 #include "btn.h"
 #include "nvm.h"
 #include "message.h"
+#include "utils.h"
 #include "../Tests/tests.h"
 
 #define LOG_LEVEL LOG_LEVEL_INFO
@@ -31,6 +32,7 @@
 #define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 0)
 #define REQUEST_DMA(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 1)
 #define RESPOND(opcode, data, length) APP_SendMessage(&if_upstream, opcode, data, length, 0)
+#define CREATE_RESP(msg) MESSAGE_Create(PROTO_CCNET, MSG_DIR_TX, msg.opcode, msg.data, msg.length);
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t dma_tx_buffer[256];
@@ -48,12 +50,29 @@ typedef enum {
 } poll_state_t;
 
 typedef struct {
-    poll_state_t poller_state;
+    poll_state_t state;
     uint32_t last_poll_time;
-} protocol_state_t;
+    message_t last_msg;
+    uint8_t last_opcode;
+} poller_t;
 
-static protocol_state_t ds = {POLL_IDLE, 0};
-static protocol_state_t us = {POLL_IDLE, 0};
+typedef enum {
+    DOWNSTREAM_UNKNOWN = 0,
+    DOWNSTREAM_OK,
+} downstream_state_t;
+
+typedef struct {
+    poller_t poller;
+    downstream_state_t state;
+    message_t last_req_msg; /* last request sent downstream to check for ID003 echo*/
+} downstream_context_t;
+
+downstream_context_t ds_context = {
+    .poller.state = POLL_IDLE,
+    .poller.last_msg = {0, 0, 0, NULL, 0},
+    .poller.last_opcode = 0,
+    .state = DOWNSTREAM_UNKNOWN
+};
 
 /* Message structures for UART data reception */
 message_t upstream_msg;    /* CCNET messages from upstream */
@@ -92,9 +111,8 @@ interface_config_t if_downstream = {
 message_parse_result_t APP_CheckForUpstreamMessage(void);
 message_parse_result_t APP_CheckForDownstreamMessage(void);
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
-static void APP_ProcessDownstreamPolling(void);
+static void APP_DownstreamPolling(void);
 static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length, uint8_t use_dma);
-static void my_memcpy(uint8_t* dest, const uint8_t* src, uint32_t length);
 /* Exported functions --------------------------------------------------------*/
 
 /**
@@ -183,7 +201,7 @@ void APP_Process(void)
     }
     
     /* Process downstream polling */
-    APP_ProcessDownstreamPolling();
+    APP_DownstreamPolling();
     
     /* Check for downstream message */
     if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
@@ -193,79 +211,21 @@ void APP_Process(void)
         {
             case MSG_OK:
                 // TODO: process downstream message
-                LOG_Debug("ID003 message received OK");
+                LOG_Debug("Downstream message received OK");
                 LOG_Proto(&downstream_msg);
-                
-                switch (downstream_msg.opcode)
+                if (PROTO_IsId003StatusCode(downstream_msg.opcode))
                 {
-                    case ID003_STATUS_ACK:
-                        LOG_Info("Downstream ACK received");
-                        break;
-                        
-                    case ID003_STATUS_IDLING:
-                        LOG_Info("Downstream device idling");
-                        break;
-                        
-                    case ID003_STATUS_ACCEPTING:
-                        LOG_Info("Downstream device accepting bills");
-                        break;
-                        
-                    case ID003_STATUS_ESCROW:
-                        LOG_Info("Downstream device bill in escrow");
-                        break;
-                        
-                    case ID003_STATUS_STACKING:
-                        LOG_Info("Downstream device stacking bill");
-                        break;
-                        
-                    case ID003_STATUS_STACKED:
-                        LOG_Info("Downstream device bill stacked");
-                        break;
-                        
-                    case ID003_STATUS_REJECTING:
-                        LOG_Info("Downstream device rejecting bill");
-                        break;
-                        
-                    case ID003_STATUS_RETURNING:
-                        LOG_Info("Downstream device returning bill");
-                        break;
-                        
-                    case ID003_STATUS_HOLDING:
-                        LOG_Info("Downstream device holding bill");
-                        break;
-                        
-                    case ID003_STATUS_STACKER_FULL:
-                        LOG_Warn("Downstream device stacker full");
-                        break;
-                        
-                    case ID003_STATUS_STACKER_OPEN:
-                        LOG_Warn("Downstream device stacker open");
-                        break;
-                        
-                    case ID003_STATUS_ACCEPTOR_JAM:
-                        LOG_Error("Downstream device acceptor jam");
-                        break;
-                        
-                    case ID003_STATUS_STACKER_JAM:
-                        LOG_Error("Downstream device stacker jam");
-                        break;
-                        
-                    case ID003_STATUS_FAILURE:
-                        LOG_Error("Downstream device failure");
-                        break;
-                        
-                    case ID003_STATUS_COMM_ERROR:
-                        LOG_Error("Downstream device communication error");
-                        break;
-                        
-                    case ID003_STATUS_INVALID_COMMAND:
-                        LOG_Error("Downstream device invalid command");
-                        break;
-                        
-                    default:
-
-                        break;
+                    LOG_Debug("Downstream ID003 status code parsed to upstream msg object");
+                
+                    
                 }
+                else
+                {
+                    LOG_Warn("Downstream message is not a ID003 status code");
+                }
+
+                  
+                
                 break;
                 
             case MSG_CRC_INVALID:
@@ -274,6 +234,7 @@ void APP_Process(void)
                 break;
                 
             case MSG_UNKNOWN_OPCODE:
+            break;
             case MSG_DATA_MISSING_FOR_OPCODE:
                 // TODO: send error message
                 LOG_Warn("Downstream message unknown opcode or data missing for opcode");
@@ -289,34 +250,57 @@ void APP_Process(void)
     /* Check for upstream message */
     if ((msg_received_status = APP_CheckForUpstreamMessage()) != MSG_NO_MESSAGE)
     {
+        message_t new_us_msg;      /* new upstream message created by mapping status code and data*/
+
         /* message received */
         switch (msg_received_status)
         {
             case MSG_OK:
                 // TODO: process upstream message
-                LOG_Info("CCNET message received OK");
+                LOG_Debug("CCNET message received OK");
                 LOG_Proto(&upstream_msg);
                 
                 switch (upstream_msg.opcode)
                 {
                     case CCNET_POLL:
-                        RESPOND(CCNET_STATUS_INITIALIZE, NULL, 0);
+                        PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+                        CREATE_RESP(new_us_msg);
+                        RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
+                        
                         break;
                         
                     case CCNET_RESET:
                         REQUEST(ID003_RESET, NULL, 0);
                         if ((downstream_opcode = APP_WaitForDownstreamMessage(10)) != MSG_NO_MESSAGE)
-                        {
                             RESPOND(CCNET_STATUS_ACK, NULL, 0);
-                        }
                         else
-                        {
                             RESPOND(CCNET_STATUS_NAK, NULL, 0);
+                        break;
+
+                    case CCNET_ENABLE_BILL_TYPES:
+                        {
+                            uint8_t enable_data[1] ={0};  /* 0: enable all bill types*/
+                            REQUEST(ID003_INHIBIT, enable_data, 1);
+                            APP_WaitForDownstreamMessage(10); /* wait for enable response. do nothing now*/
+
+                            uint8_t inhibit_data[1] ={0};  /* 0: de-inhibit*/
+                            REQUEST(ID003_INHIBIT, inhibit_data, 1);
+                            APP_WaitForDownstreamMessage(10); /* wait for inhibit response to respond upstream*/
+                            RESPOND(CCNET_STATUS_ACK, NULL, 0); /* todo to respond NAK */
                         }
                         break;
+
+                    case CCNET_ACK:
+                        LOG_Debug("CCNET_ACK received");
+                        break;
+
+                    case CCNET_NAK:
+                        LOG_Warn("CCNET_NAK received");
+                        break;
+
                         
                     default:
-                        if (PROTO_SupportedCmd(upstream_msg.opcode))
+                        if (IsSupportedCcnetCommand(upstream_msg.opcode))
                         {
                             LOG_Warn("Supported CCNET opcode received but not implemented");
                         }
@@ -354,9 +338,22 @@ void APP_Process(void)
     // USB_ProcessStatusMessage();
 }
 
-
-/* Private functions ---------------------------------------------------------*/
-
+/**
+  * @brief  Check for downstream message and parse if available
+  * @retval message_parse_result_t: MSG_NO_MESSAGE if no data, or parse result
+  */
+  message_parse_result_t APP_CheckForDownstreamMessage(void)
+  {
+      /* Check for downstream data and parse if available */
+      if (UART_CheckForDownstreamData())
+      {
+          /* Parse the received message */
+          return MESSAGE_Parse(&downstream_msg);
+      }
+      
+      /* No message received */
+      return MSG_NO_MESSAGE;
+  }
 
 /**
   * @brief  Check for upstream message and parse if available
@@ -375,22 +372,7 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
     return MSG_NO_MESSAGE;
 }
 
-/**
-  * @brief  Check for downstream message and parse if available
-  * @retval message_parse_result_t: MSG_NO_MESSAGE if no data, or parse result
-  */
-message_parse_result_t APP_CheckForDownstreamMessage(void)
-{
-    /* Check for downstream data and parse if available */
-    if (UART_CheckForDownstreamData())
-    {
-        /* Parse the received message */
-        return MESSAGE_Parse(&downstream_msg);
-    }
-    
-    /* No message received */
-    return MSG_NO_MESSAGE;
-}
+
 
 /**
   * @brief  Wait for downstream message with timeout
@@ -408,6 +390,8 @@ static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
         {
             /* Parse the received message */
             MESSAGE_Parse(&downstream_msg);
+            LOG_Proto(&downstream_msg); 
+            
             /* return opcode */
             return downstream_msg.opcode;
         }
@@ -445,6 +429,12 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
     
     /* Create message ready for transmission */
     tx_msg = MESSAGE_Create(interface->protocol, direction, opcode, data, data_length);
+    if (interface == &if_downstream) {
+        /* creaate a copy of last request message and store to check for echo*/
+        message_t last_ds_msg;
+        last_ds_msg = MESSAGE_Create(interface->protocol, MSG_DIR_RX, tx_msg.opcode, tx_msg.data, tx_msg.length);
+        ds_context.last_req_msg = last_ds_msg;
+    }
 
     /* Log the message */
     LOG_Debug("app.c: Sending message");
@@ -458,7 +448,7 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
     else
     {
         /* Transmit raw message data */
-        my_memcpy(dma_tx_buffer, tx_msg.raw, tx_msg.length);
+        utils_memcpy(dma_tx_buffer, tx_msg.raw, tx_msg.length);
         HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(interface->phy.uart_handle, dma_tx_buffer, tx_msg.length);
 
         if (status != HAL_OK) {
@@ -476,55 +466,19 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
   * @brief  Process downstream polling based on configured period
   * @retval None
   */
-static void APP_ProcessDownstreamPolling(void)
+static void APP_DownstreamPolling(void)
 {
     uint32_t current_time = HAL_GetTick();
     
-    switch (ds.poller_state)
-    {
-        case POLL_IDLE:
-            /* Check if polling period has expired */
-            if ((current_time - ds.last_poll_time) >= if_downstream.datalink.polling_period_ms)
-            {
-                /* Set state to sending and send status request */
-                ds.poller_state = POLL_SENDING;
-                REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
-                                
-                /* Set state to sent */
-                ds.poller_state = POLL_SENT;
-                ds.last_poll_time = current_time;
-            }
-            break;
-            
-        case POLL_SENDING:
-            /* Wait for DMA completion */
-            ds.poller_state = POLL_SENT;
-            break;
-            
-        case POLL_SENT:
-            /* Reset to idle state */
-            ds.poller_state = POLL_IDLE;
-            break;
-            
-        default:
-            /* Reset to idle state on unknown state */
-            ds.poller_state = POLL_IDLE;
-            break;
-    }
+    if ((current_time - ds_context.poller.last_poll_time) >= if_downstream.datalink.polling_period_ms)
+        {
+            /* Send status request */
+            REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
+                            
+            /* Set state to sent */
+            ds_context.poller.state = POLL_SENT;
+            ds_context.poller.last_poll_time = current_time;
+        }
 }
 
-/**
-  * @brief  Simple memory copy function
-  * @param  dest: Destination buffer
-  * @param  src: Source buffer
-  * @param  length: Number of bytes to copy
-  * @retval None
-  */
-static void my_memcpy(uint8_t* dest, const uint8_t* src, uint32_t length)
-{
-    for (uint32_t i = 0; i < length; i++)
-    {
-        dest[i] = src[i];
-    }
-}
 

@@ -15,6 +15,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "message.h"
 #include "crc.h"
+#include "utils.h"
 
 /* Private defines -----------------------------------------------------------*/
 #define MESSAGE_MAX_DATA_LENGTH 250
@@ -301,6 +302,8 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
             /* CCNET Receive Status Responses */
             switch (msg->opcode)
             {
+                case 0x00: return "CCNET_STATUS_ACK";
+                case 0xFF: return "CCNET_STATUS_NAK";
                 case 0x10: return "CCNET_STATUS_POWER_UP";
                 case 0x11: return "CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR";
                 case 0x12: return "CCNET_STATUS_POWER_UP_BILL_IN_STACKER";
@@ -388,7 +391,15 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 case 0x49: return "ID003_STATUS_FAILURE";
                 case 0x4A: return "ID003_STATUS_COMM_ERROR";
                 case 0x4B: return "ID003_STATUS_INVALID_COMMAND";
-                default: return "ID003_RX_UNKNOWN";
+                // default: return "ID003_RX_UNKNOWN";
+                default: break;
+            }
+            /* check for ID003 echo*/
+            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A};
+            if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
+                return "ID003_CMD_ECHO";
+            } else {
+                return "ID003_RX_UNKNOWN";
             }
         }
     }
