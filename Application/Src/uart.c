@@ -282,7 +282,8 @@ void UART_TransmitMessage(interface_config_t* interface, message_t* message)
     }
 
     /* Transmit raw message data */
-    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, 100);
+    uint32_t timeout_ms = message->length + 50;  /* transmission at 9600 about 1 byte per s. Longest message is 125 bytes and takes 132ms on scope*/
+    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, timeout_ms);
 
     if (status != HAL_OK) {
     	if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");

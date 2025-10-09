@@ -26,7 +26,7 @@
 #include "utils.h"
 #include "../Tests/tests.h"
 
-#define LOG_LEVEL LOG_LEVEL_INFO
+#define LOG_LEVEL LOG_LEVEL_DEBUG
 
 /* Message sending macros ----------------------------------------------------*/
 #define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 0)
@@ -77,6 +77,13 @@ downstream_context_t ds_context = {
 /* Message structures for UART data reception */
 message_t upstream_msg;    /* CCNET messages from upstream */
 message_t downstream_msg;  /* ID003 messages from downstream */
+
+/* Global bill table */
+bill_table_t g_bill_table = {
+    .is_loaded = 0,                     /* only load the downstream bill table once by using this flag*/
+    .currency = "EUR",
+    .count = 0
+};
 
 
 
@@ -296,10 +303,12 @@ void APP_Process(void)
                                 REQUEST(ID003_STATUS_REQ, NULL, 0);
                                 APP_WaitForDownstreamMessage(10);
                             }
-                            
-                            PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
-                            CREATE_RESP(new_us_msg);
-                            RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
+                            if (downstream_msg.length > 0)   // if no downstream status was received, length is 0. Let it just timeout*/
+                            {
+                                PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+                                CREATE_RESP(new_us_msg);
+                                RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
+                            }
                         }
                         else
                         {
@@ -539,20 +548,105 @@ static void APP_GetBillTable(void)
     /* Check protocol type */
     if (if_downstream.protocol == PROTO_ID003)
     {
-        /* Request currency assignment/bill table from ID003 validator */
-        REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
-        
-        /* Wait 10ms for response */
-        if ((APP_WaitForDownstreamMessage(10)) == MSG_OK)
+        /* If bill table has already been loaded, respond to the upstream request immediately*/
+        if (g_bill_table.is_loaded == 0)
         {
-            LOG_Debug("AGG_GET_BILL_TABLE: ok");
-            LOG_Proto(&downstream_msg);
+            /* Request currency assignment/bill table from ID003 validator */
+            REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
+            
+            /* Wait 10ms for response */
+            uint8_t purge;
+            purge = APP_WaitForDownstreamMessage(10+42); /* response is 42ms long */
+            if (purge |=0xFF)
+            {
+                LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 bill table");
+                LOG_Proto(&downstream_msg);
+                
+                /* Parse ID003 currency assignment data */
+                /* Format: groups of 4 bytes: denom_nr, country_code, coefficient, exponent */
+                uint8_t num_denoms = downstream_msg.data_length / 4;
+                g_bill_table.count = 0;
+                
+                for (uint8_t i = 0; i < num_denoms; i++)
+                {
+                    uint8_t offset = i * 4;
+                    uint8_t denom_nr = downstream_msg.data[offset];
+                    uint8_t country_code = downstream_msg.data[offset + 1];
+                    uint8_t coefficient = downstream_msg.data[offset + 2];
+                    uint8_t exponent = downstream_msg.data[offset + 3];
+                    
+                    /* Skip if coefficient is zero */
+                    if (coefficient == 0)
+                    {
+                        continue;
+                    }
+                    
+                    /* Calculate value: coefficient * 10^exponent */
+                    uint16_t value = coefficient;
+                    for (uint8_t e = 0; e < exponent; e++)
+                    {
+                        value *= 10;
+                    }
+                    
+                    /* Store in bill table */
+                    if (g_bill_table.count < MAX_BILL_DENOMS)
+                    {
+                        g_bill_table.denoms[g_bill_table.count].id003_denom_nr = denom_nr;
+                        g_bill_table.denoms[g_bill_table.count].id003_denom_bitnr = (denom_nr & 0x0F) - 1; /* Extract bit number from denom_nr */
+                        g_bill_table.denoms[g_bill_table.count].value = value;
+                        g_bill_table.denoms[g_bill_table.count].ccnet_bitnr = g_bill_table.count; /* CCNET bit number maps sequentially */
+                        g_bill_table.count++;
+                    }
+                    
+                }
+                
+                LOG_Info("Bill table loaded from downstream validator");
+            }
+            else {
+                LOG_Warn("APP_GET_BILL_TABLE: failed");
+            }
+        } /* end if g_bill_table.is_loaded == 0 */
+
+        /* respond to data Get Bill Table request*/
+        /* create 24 rows of 5 bytes ccnet response payload */
+        uint8_t data[24*5];
+        uint8_t data_length = 24 * 5;
+        
+        /* Initialize all data to zero */
+        for (uint8_t i = 0; i < data_length; i++)
+        {
+            data[i] = 0;
         }
-        else {
-            LOG_Warn("AGG_GET_BILL_TABLE: failed");
+        
+        /* Fill in the bill table data from g_bill_table */
+        for (uint8_t i = 0; i < g_bill_table.count && i < 24; i++)
+        {
+            uint8_t offset = i * 5;
+            uint16_t value = g_bill_table.denoms[i].value;
+            
+            /* Calculate coefficient and exponent from value */
+            uint8_t exponent = 0;
+            uint16_t coefficient = value;
+            while (coefficient >= 10 && exponent < 9)
+            {
+                coefficient /= 10;
+                exponent++;
+            }
+            
+            /* Row format: coefficient, currency[0], currency[1], currency[2], exponent */
+            data[offset + 0] = (uint8_t)coefficient;
+            data[offset + 1] = g_bill_table.currency[0];
+            data[offset + 2] = g_bill_table.currency[1];
+            data[offset + 3] = g_bill_table.currency[2];
+            data[offset + 4] = exponent;
         }
 
-    }
+        RESPOND(CCNET_BILL_TABLE, data, data_length);
+        g_bill_table.is_loaded = 1;
+
+        return;
+
+    } /* end if PROTO_ID003 */
 }
 
 

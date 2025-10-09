@@ -129,6 +129,7 @@ static void MESSAGE_SetRaw(message_t* msg)
 {
     uint16_t pos = 0;
     uint8_t header_length;
+    uint8_t skip_opcode = 0; /* Flag to skip opcode field */
     
     /* Set header bytes */
     switch (msg->protocol)
@@ -144,6 +145,12 @@ static void MESSAGE_SetRaw(message_t* msg)
             msg->raw[pos++] = 0x02;
             msg->raw[pos++] = 0x03;
             header_length = 2;
+            
+            /* CCNET Bill Table response has no opcode field */
+            if (msg->opcode == CCNET_BILL_TABLE && msg->direction == MSG_DIR_RX)
+            {
+                skip_opcode = 1;
+            }
             break;
 
         case PROTO_CCTALK:
@@ -154,10 +161,20 @@ static void MESSAGE_SetRaw(message_t* msg)
     }  
 
     /* Set length field */
-    msg->raw[pos++] = header_length + 1 + 1 + msg->data_length + 2; /* header(1 or 2) + length + opcode + data + crc */
+    if (!skip_opcode)
+    {
+        msg->raw[pos++] = header_length + 1 + 1 + msg->data_length + 2; /* header(1 or 2) + length + opcode + data + crc */
+    }
+    else
+    {
+        msg->raw[pos++] = header_length + 1 + msg->data_length + 2; /* header(2) + length + data + crc (no opcode) */
+    }
     
-    /* Set opcode */
-    msg->raw[pos++] = msg->opcode;
+    /* Set opcode (skip for CCNET Bill Table response) */
+    if (!skip_opcode)
+    {
+        msg->raw[pos++] = msg->opcode;
+    }
     
     /* Add data */
     if (msg->data_length > 0)
@@ -301,6 +318,9 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
         else
         {
             /* CCNET Receive Status Responses */
+        	/* handle 0x41 opcode */
+            if ((msg->opcode == CCNET_BILL_TABLE) || (msg->length == 0x7D)) return "BILL TABLE RESP";
+
             switch (msg->opcode)
             {
                 case 0x00: return "CCNET_STATUS_ACK";

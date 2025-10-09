@@ -27,6 +27,28 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 
+/**
+  * @brief  Bill denomination entry structure
+  */
+typedef struct
+{
+    uint8_t id003_denom_nr;     /* ID003 denomination number (e.g., 0x61, 0x62) */
+    uint8_t id003_denom_bitnr;  /* ID003 bit number (0-7) */
+    uint16_t value;             /* Denomination value in currency units */
+    uint8_t ccnet_bitnr;        /* CCNET bit number (0-23) */
+} bill_denom_t;
+
+/**
+  * @brief  Bill table structure
+  */
+#define MAX_BILL_DENOMS 24
+typedef struct
+{
+    uint8_t is_loaded;          /* Flag: 1 if bill table loaded from downstream, 0 otherwise */
+    char currency[4];           /* Currency code (e.g., "EUR", "USD") */
+    bill_denom_t denoms[MAX_BILL_DENOMS]; /* Denomination table */
+    uint8_t count;              /* Number of denominations */
+} bill_table_t;
 
 /**
   * @brief  Physical interface polarity enumeration
@@ -106,6 +128,9 @@ extern interface_config_t if_downstream;  /* Downstream interface (ID003) */
 /* Message objects */
 extern message_t upstream_msg;    /* CCNET messages from upstream */
 extern message_t downstream_msg;  /* ID003 messages from downstream */
+
+/* Bill table */
+extern bill_table_t g_bill_table;
 
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_Init(void);

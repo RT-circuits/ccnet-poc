@@ -175,35 +175,12 @@ extern const uint8_t id003_reject_map[];
 
 extern const uint8_t id003_failure_map[];
 
-/* Function declarations ------------------------------------------------------*/
-uint8_t IsSupportedCcnetCommand(uint8_t opcode);
-uint8_t PROTO_IsId003StatusCode(uint8_t status_code);
-
-// /* ID003 Echo Responses */
-// #define ID003_ECHO_ENABLE                          0xC0
-// #define ID003_ECHO_SECURITY                        0xC1
-// #define ID003_ECHO_COMM_MODE                       0xC2
-// #define ID003_ECHO_INHIBIT                         0xC3
-// #define ID003_ECHO_DIRECTION                       0xC4
-// #define ID003_ECHO_OPT_FUNC                        0xC5
-
-// /* ID003 Request Response */
-// #define ID003_REQ_RESP_ENABLE                      0x80
-// #define ID003_REQ_RESP_SECURITY                    0x81
-// #define ID003_REQ_RESP_COMM_MODE                   0x82
-// #define ID003_REQ_RESP_INHIBIT                     0x83
-// #define ID003_REQ_RESP_DIRECTION                   0x84
-// #define ID003_REQ_RESP_OPT_FUNC                    0x85
-// #define ID003_REQ_RESP_VERSION                     0x88
-// #define ID003_REQ_RESP_BOOT_VERSION                0x89
-// #define ID003_REQ_RESP_CURRENCY_ASSIGN             0x8A
-
-/* Exported macro ------------------------------------------------------------*/
-
 /* Exported variables --------------------------------------------------------*/
 
 
 /* Exported functions prototypes ---------------------------------------------*/
+uint8_t IsSupportedCcnetCommand(uint8_t opcode);
+uint8_t PROTO_IsId003StatusCode(uint8_t status_code);
 void PROTO_Init(void);
 void PROTO_Process(uint8_t* data, uint16_t length);
 void PROTO_SendMessage(uint8_t* data, uint16_t length);
