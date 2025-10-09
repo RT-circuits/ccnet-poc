@@ -57,8 +57,8 @@ typedef struct {
 } poller_t;
 
 typedef enum {
-    DOWNSTREAM_UNKNOWN = 0,
-    DOWNSTREAM_OK,
+    DS_NO_RESPONSE = 0,
+    DS_OK,
 } downstream_state_t;
 
 typedef struct {
@@ -71,7 +71,7 @@ downstream_context_t ds_context = {
     .poller.state = POLL_IDLE,
     .poller.last_msg = {0, 0, 0, NULL, 0},
     .poller.last_opcode = 0,
-    .state = DOWNSTREAM_UNKNOWN
+    .state = DS_NO_RESPONSE
 };
 
 /* Message structures for UART data reception */
@@ -113,6 +113,7 @@ message_parse_result_t APP_CheckForDownstreamMessage(void);
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
 static void APP_DownstreamPolling(void);
 static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length, uint8_t use_dma);
+static void APP_GetBillTable(void);
 /* Exported functions --------------------------------------------------------*/
 
 /**
@@ -206,6 +207,13 @@ void APP_Process(void)
     /* Check for downstream message */
     if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
     {
+        /* Update state on first message */
+        if (ds_context.state == DS_NO_RESPONSE)
+        {
+            LOG_Debug("Downstream first message received");
+            ds_context.state = DS_OK;
+        }
+        
         /* message received */
         switch (msg_received_status)
         {
@@ -262,14 +270,11 @@ void APP_Process(void)
                 
                 switch (upstream_msg.opcode)
                 {
-                    case CCNET_POLL:
-                        PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
-                        CREATE_RESP(new_us_msg);
-                        RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
-                        
+                    case CCNET_ACK:                    /* 0x00 - ACK */
+                        LOG_Debug("CCNET_ACK received");
                         break;
-                        
-                    case CCNET_RESET:
+
+                    case CCNET_RESET:                  /* 0x30 - Reset */
                         REQUEST(ID003_RESET, NULL, 0);
                         if ((downstream_opcode = APP_WaitForDownstreamMessage(10)) != MSG_NO_MESSAGE)
                             RESPOND(CCNET_STATUS_ACK, NULL, 0);
@@ -277,7 +282,32 @@ void APP_Process(void)
                             RESPOND(CCNET_STATUS_NAK, NULL, 0);
                         break;
 
-                    case CCNET_ENABLE_BILL_TYPES:
+                    case CCNET_STATUS_REQUEST:         /* 0x31 - Get Status */
+                        LOG_Warn("CCNET_STATUS_REQUEST not implemented");
+                        break;
+
+                    case CCNET_POLL:                   /* 0x33 - Poll */
+                        /* check if downstream message has been received or polling is disabled */
+                        if (ds_context.state != DS_NO_RESPONSE || if_downstream.datalink.polling_period_ms == 0)
+                        {
+                            /* If polling is disabled, manually request status */
+                            if (if_downstream.datalink.polling_period_ms == 0)
+                            {
+                                REQUEST(ID003_STATUS_REQ, NULL, 0);
+                                APP_WaitForDownstreamMessage(10);
+                            }
+                            
+                            PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+                            CREATE_RESP(new_us_msg);
+                            RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
+                        }
+                        else
+                        {
+                            LOG_Warn("No bill validator connected");
+                        }
+                        break;
+
+                    case CCNET_ENABLE_BILL_TYPES:      /* 0x34 - Enable Bill Types */
                         {
                             uint8_t enable_data[1] ={0};  /* 0: enable all bill types*/
                             REQUEST(ID003_INHIBIT, enable_data, 1);
@@ -290,15 +320,26 @@ void APP_Process(void)
                         }
                         break;
 
-                    case CCNET_ACK:
-                        LOG_Debug("CCNET_ACK received");
+                    case CCNET_STACK:                  /* 0x35 - Stack */
+                        LOG_Warn("CCNET_STACK not implemented");
                         break;
 
-                    case CCNET_NAK:
+                    case CCNET_RETURN:                 /* 0x36 - Return */
+                        LOG_Warn("CCNET_RETURN not implemented");
+                        break;
+
+                    case CCNET_IDENTIFICATION:         /* 0x37 - Identification */
+                        LOG_Warn("CCNET_IDENTIFICATION not implemented");
+                        break;
+
+                    case CCNET_BILL_TABLE:             /* 0x41 - Get Bill Table */
+                        APP_GetBillTable();
+                        break;
+
+                    case CCNET_NAK:                    /* 0xFF - NAK */
                         LOG_Warn("CCNET_NAK received");
                         break;
 
-                        
                     default:
                         if (IsSupportedCcnetCommand(upstream_msg.opcode))
                         {
@@ -383,6 +424,8 @@ static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
 {
     uint32_t start_tick = HAL_GetTick();
     
+    LOG_Debug("In APP_WaitForDownstreamMessage");
+
     while (1)
     {
         /* Check for downstream data and parse if available */
@@ -470,6 +513,12 @@ static void APP_DownstreamPolling(void)
 {
     uint32_t current_time = HAL_GetTick();
     
+    /* Skip polling if disabled (period = 0) */
+    if (if_downstream.datalink.polling_period_ms == 0)
+    {
+        return;
+    }
+    
     if ((current_time - ds_context.poller.last_poll_time) >= if_downstream.datalink.polling_period_ms)
         {
             /* Send status request */
@@ -479,6 +528,31 @@ static void APP_DownstreamPolling(void)
             ds_context.poller.state = POLL_SENT;
             ds_context.poller.last_poll_time = current_time;
         }
+}
+
+/**
+  * @brief  Get bill table from downstream validator
+  * @retval None
+  */
+static void APP_GetBillTable(void)
+{
+    /* Check protocol type */
+    if (if_downstream.protocol == PROTO_ID003)
+    {
+        /* Request currency assignment/bill table from ID003 validator */
+        REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
+        
+        /* Wait 10ms for response */
+        if ((APP_WaitForDownstreamMessage(10)) == MSG_OK)
+        {
+            LOG_Debug("AGG_GET_BILL_TABLE: ok");
+            LOG_Proto(&downstream_msg);
+        }
+        else {
+            LOG_Warn("AGG_GET_BILL_TABLE: failed");
+        }
+
+    }
 }
 
 

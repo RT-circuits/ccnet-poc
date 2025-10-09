@@ -257,7 +257,7 @@ static void LOG_PrintLevel(log_level_t level)
             USB_TransmitString("INFO:  ");
             break;
         case LOG_LEVEL_DEBUG:
-            USB_TransmitString("DEBUG: ");
+            USB_TransmitString("  DEBUG: ");
             break;
         case LOG_LEVEL_VERBOSE:
             USB_TransmitString("VERB:  ");

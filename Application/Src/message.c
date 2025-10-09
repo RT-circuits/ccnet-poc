@@ -16,6 +16,7 @@
 #include "message.h"
 #include "crc.h"
 #include "utils.h"
+#include "proto.h"
 
 /* Private defines -----------------------------------------------------------*/
 #define MESSAGE_MAX_DATA_LENGTH 250
@@ -507,42 +508,23 @@ message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg)
                     return MSG_UNKNOWN_OPCODE;
             }
         }
-        else
+        else    // direction is RX
         {
             /* ID003 Receive Status Responses */
-            switch (msg->opcode)
-            {
-                case 0x50: /* ID003_STATUS_ACK */
-                case 0x11: /* ID003_STATUS_IDLING */
-                case 0x12: /* ID003_STATUS_ACCEPTING */
-                case 0x13: /* ID003_STATUS_ESCROW */
-                case 0x14: /* ID003_STATUS_STACKING */
-                case 0x15: /* ID003_STATUS_VEND_VALID */
-                case 0x16: /* ID003_STATUS_STACKED */
-                case 0x17: /* ID003_STATUS_REJECTING */
-                case 0x18: /* ID003_STATUS_RETURNING */
-                case 0x19: /* ID003_STATUS_HOLDING */
-                case 0x1A: /* ID003_STATUS_DISABLE_INHIBIT */
-                case 0x1B: /* ID003_STATUS_INITIALIZE */
-                case 0x40: /* ID003_STATUS_POWER_UP */
-                case 0x41: /* ID003_STATUS_POWER_UP_BIA */
-                case 0x42: /* ID003_STATUS_POWER_UP_BIS */
-                case 0x43: /* ID003_STATUS_STACKER_FULL */
-                case 0x44: /* ID003_STATUS_STACKER_OPEN */
-                case 0x45: /* ID003_STATUS_ACCEPTOR_JAM */
-                case 0x46: /* ID003_STATUS_STACKER_JAM */
-                case 0x47: /* ID003_STATUS_PAUSE */
-                case 0x48: /* ID003_STATUS_CHEATED */
-                case 0x49: /* ID003_STATUS_FAILURE */
-                case 0x4A: /* ID003_STATUS_COMM_ERROR */
-                case 0x4B: /* ID003_STATUS_INVALID_COMMAND */
-                    return MSG_OK;
-                default:
-                    return MSG_UNKNOWN_OPCODE;
+            if (PROTO_IsId003StatusCode(msg->opcode)) {
+                return MSG_OK;
+            }
+            /* check for ID003 echo*/
+            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A};
+            if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
+                return MSG_OK;
+            }
+            /* check ACK */
+            if (msg->opcode == 0x50) {
+                return MSG_OK;
             }
         }
     }
-    
     return MSG_UNKNOWN_OPCODE;
 }
 

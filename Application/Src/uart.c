@@ -128,6 +128,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
     case UART_STATE_WAIT_LENGTH:
         intf->length = byte + intf->interface->datalink.length_offset;
+
         intf->rx_buffer[intf->rx_index++] = byte;
         
         /* Validate length */
@@ -162,6 +163,10 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
         intf->rx_buffer[intf->rx_index++] = byte;
         if (intf->rx_index == intf->length) {
             /* Copy received data to message structure */
+            if (intf->length == 0x25)
+            	{
+            	__NOP(); // debugging
+            	}
             if (intf->message != NULL) {
                 /* Clear the entire message buffer first */
                 for (int i = 0; i < 256; i++) {
