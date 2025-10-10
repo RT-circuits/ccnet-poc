@@ -26,7 +26,7 @@
 #include "utils.h"
 #include "../Tests/tests.h"
 
-#define LOG_LEVEL LOG_LEVEL_DEBUG
+#define LOG_LEVEL LOG_LEVEL_INFO
 
 /* Message sending macros ----------------------------------------------------*/
 #define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 0)
@@ -57,21 +57,35 @@ typedef struct {
 } poller_t;
 
 typedef enum {
+    DS_NOT_STARTED = 0,
+    DS_FIRST_POLL_SENT,
+    DS_FIRST_POLL_RECEIVED_OK,
+    DS_BILL_TABLE_REQUEST_SENT,
+    DS_BILL_TABLE_RECEIVED_OK,
+    DS_STARTUP_OK,
+    // DS_STARTUP_ERROR_NO_BILL_TABLE
+} startup_state_t;
+
+typedef enum {
     DS_NO_RESPONSE = 0,
     DS_OK,
 } downstream_state_t;
 
 typedef struct {
     poller_t poller;
+    startup_state_t startup;
     downstream_state_t state;
     message_t last_req_msg; /* last request sent downstream to check for ID003 echo*/
+    uint32_t last_req_time; /* last request sent time*/
 } downstream_context_t;
 
 downstream_context_t ds_context = {
     .poller.state = POLL_IDLE,
     .poller.last_msg = {0, 0, 0, NULL, 0},
     .poller.last_opcode = 0,
-    .state = DS_NO_RESPONSE
+    .startup = DS_NOT_STARTED,
+    .state = DS_NO_RESPONSE,
+    .last_req_time = 0,
 };
 
 /* Message structures for UART data reception */
@@ -118,9 +132,11 @@ interface_config_t if_downstream = {
 message_parse_result_t APP_CheckForUpstreamMessage(void);
 message_parse_result_t APP_CheckForDownstreamMessage(void);
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
-static void APP_DownstreamPolling(void);
+static void APP_DownstreamStartup(void);
+static void APP_DownstreamPolling(uint16_t polling_period_ms);
 static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8_t* data, uint8_t data_length, uint8_t use_dma);
 static void APP_GetBillTable(void);
+static void APP_RespondBillTable(void);
 /* Exported functions --------------------------------------------------------*/
 
 /**
@@ -208,8 +224,16 @@ void APP_Process(void)
         return; /* Exit early - don't process USB status messages */
     }
     
-    /* Process downstream polling */
-    APP_DownstreamPolling();
+    /* Handle startup: get first poll response and bill table*/
+    if (ds_context.startup < DS_STARTUP_OK)
+    {
+        APP_DownstreamStartup();
+    }
+    else 
+    {
+        /* Send out downstream polls. periodic and using DMA */
+        APP_DownstreamPolling(if_downstream.datalink.polling_period_ms);
+    }
     
     /* Check for downstream message */
     if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
@@ -283,7 +307,7 @@ void APP_Process(void)
 
                     case CCNET_RESET:                  /* 0x30 - Reset */
                         REQUEST(ID003_RESET, NULL, 0);
-                        if ((downstream_opcode = APP_WaitForDownstreamMessage(10)) != MSG_NO_MESSAGE)
+                        if (APP_WaitForDownstreamMessage(10) != MSG_NO_MESSAGE)
                             RESPOND(CCNET_STATUS_ACK, NULL, 0);
                         else
                             RESPOND(CCNET_STATUS_NAK, NULL, 0);
@@ -342,7 +366,7 @@ void APP_Process(void)
                         break;
 
                     case CCNET_BILL_TABLE:             /* 0x41 - Get Bill Table */
-                        APP_GetBillTable();
+                        APP_RespondBillTable();
                         break;
 
                     case CCNET_NAK:                    /* 0xFF - NAK */
@@ -428,11 +452,14 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
   * @brief  Wait for downstream message with timeout
   * @param  timeout_ms: Timeout in milliseconds
   * @retval message_parse_result_t: MSG_NO_MESSAGE if timeout, or parse result
+  *         downstream_msg populated
   */
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
 {
     uint32_t start_tick = HAL_GetTick();
-    
+    message_parse_result_t msg_result = MSG_NO_MESSAGE;
+    /* qualified parse results for a retransmit */
+    uint8_t result_arr[] = {MSG_CRC_INVALID, MSG_DATA_MISSING_FOR_OPCODE};
     LOG_Debug("In APP_WaitForDownstreamMessage");
 
     while (1)
@@ -441,11 +468,19 @@ static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
         if (UART_CheckForDownstreamData())
         {
             /* Parse the received message */
-            MESSAGE_Parse(&downstream_msg);
+            msg_result = MESSAGE_Parse(&downstream_msg);
             LOG_Proto(&downstream_msg); 
             
-            /* return opcode */
-            return downstream_msg.opcode;
+            /* return parse result if OK */
+            if (msg_result == MSG_OK) return MSG_OK;
+            
+            else if (utils_is_member(msg_result, result_arr, sizeof(result_arr)))
+            {
+                /* retransmit the message */
+                __NOP();
+                return MSG_NO_MESSAGE;
+            } 
+            
         }
         
         /* Check if timeout has occurred */
@@ -514,21 +549,80 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
 
 }
 
+
+/**
+  * @brief  Process downstream startup
+  * @retval None
+  */
+static void APP_DownstreamStartup(void)
+{
+    switch (ds_context.startup)
+    {
+        case DS_NOT_STARTED:
+            /* Send out first poll request */
+            REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
+            if (HAL_GetTick() - ds_context.last_req_time > 5000)
+            {
+                LOG_Warn("MCU startup sequence: waiting for downstream validator response");
+                ds_context.last_req_time = HAL_GetTick();
+            }
+            ds_context.startup = DS_FIRST_POLL_SENT;
+            break;
+
+        case DS_FIRST_POLL_SENT:
+            /* Wait for first poll response. 200ms. */
+            if (APP_WaitForDownstreamMessage(200) == MSG_OK)
+            {
+                ds_context.startup = DS_FIRST_POLL_RECEIVED_OK;
+            }
+            else
+            	ds_context.startup = DS_NOT_STARTED;
+            break;
+        
+        case DS_FIRST_POLL_RECEIVED_OK:
+            /* Send out bill table request */
+        	HAL_Delay(5);  /* short delay after the validator response */
+            ds_context.startup = DS_BILL_TABLE_REQUEST_SENT;   /**/
+            APP_GetBillTable();
+            
+
+            break;
+        case DS_BILL_TABLE_REQUEST_SENT:
+            /* Wait for bill table response */
+            if (g_bill_table.is_loaded == 1)
+            {
+                ds_context.startup = DS_BILL_TABLE_RECEIVED_OK;
+            }
+            break;
+
+        default:
+            /* Startup is completed */
+            ds_context.startup = DS_STARTUP_OK;
+            break;
+    } /* end switch */
+}
+
+
+
+
+
+
+
 /**
   * @brief  Process downstream polling based on configured period
   * @retval None
   */
-static void APP_DownstreamPolling(void)
+static void APP_DownstreamPolling(uint16_t polling_period_ms)
 {
     uint32_t current_time = HAL_GetTick();
     
-    /* Skip polling if disabled (period = 0) */
-    if (if_downstream.datalink.polling_period_ms == 0)
+    /* Skip polling if disabled (period = 0) and startup is completed */
+    if ((if_downstream.datalink.polling_period_ms == 0) && (ds_context.startup >= DS_STARTUP_OK))
     {
         return;
     }
     
-    if ((current_time - ds_context.poller.last_poll_time) >= if_downstream.datalink.polling_period_ms)
+    if ((current_time - ds_context.poller.last_poll_time) >= polling_period_ms)
         {
             /* Send status request */
             REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
@@ -548,105 +642,109 @@ static void APP_GetBillTable(void)
     /* Check protocol type */
     if (if_downstream.protocol == PROTO_ID003)
     {
-        /* If bill table has already been loaded, respond to the upstream request immediately*/
-        if (g_bill_table.is_loaded == 0)
+        /* Request currency assignment/bill table from ID003 validator */
+        REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
+        
+        /* Wait 10ms for response */
+        uint8_t purge;
+        if(APP_WaitForDownstreamMessage(10+42)) /* response is 42ms long */
         {
-            /* Request currency assignment/bill table from ID003 validator */
-            REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
+            LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 bill table");
+            LOG_Proto(&downstream_msg);
             
-            /* Wait 10ms for response */
-            uint8_t purge;
-            purge = APP_WaitForDownstreamMessage(10+42); /* response is 42ms long */
-            if (purge |=0xFF)
+            /* Parse ID003 currency assignment data */
+            /* Format: groups of 4 bytes: denom_nr, country_code, coefficient, exponent */
+            uint8_t num_denoms = downstream_msg.data_length / 4;
+            g_bill_table.count = 0;
+            
+            for (uint8_t i = 0; i < num_denoms; i++)
             {
-                LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 bill table");
-                LOG_Proto(&downstream_msg);
+                uint8_t offset = i * 4;
+                uint8_t denom_nr = downstream_msg.data[offset];
+                uint8_t country_code = downstream_msg.data[offset + 1];
+                uint8_t coefficient = downstream_msg.data[offset + 2];
+                uint8_t exponent = downstream_msg.data[offset + 3];
                 
-                /* Parse ID003 currency assignment data */
-                /* Format: groups of 4 bytes: denom_nr, country_code, coefficient, exponent */
-                uint8_t num_denoms = downstream_msg.data_length / 4;
-                g_bill_table.count = 0;
-                
-                for (uint8_t i = 0; i < num_denoms; i++)
+                /* Skip if coefficient is zero */
+                if (coefficient == 0)
                 {
-                    uint8_t offset = i * 4;
-                    uint8_t denom_nr = downstream_msg.data[offset];
-                    uint8_t country_code = downstream_msg.data[offset + 1];
-                    uint8_t coefficient = downstream_msg.data[offset + 2];
-                    uint8_t exponent = downstream_msg.data[offset + 3];
-                    
-                    /* Skip if coefficient is zero */
-                    if (coefficient == 0)
-                    {
-                        continue;
-                    }
-                    
-                    /* Calculate value: coefficient * 10^exponent */
-                    uint16_t value = coefficient;
-                    for (uint8_t e = 0; e < exponent; e++)
-                    {
-                        value *= 10;
-                    }
-                    
-                    /* Store in bill table */
-                    if (g_bill_table.count < MAX_BILL_DENOMS)
-                    {
-                        g_bill_table.denoms[g_bill_table.count].id003_denom_nr = denom_nr;
-                        g_bill_table.denoms[g_bill_table.count].id003_denom_bitnr = (denom_nr & 0x0F) - 1; /* Extract bit number from denom_nr */
-                        g_bill_table.denoms[g_bill_table.count].value = value;
-                        g_bill_table.denoms[g_bill_table.count].ccnet_bitnr = g_bill_table.count; /* CCNET bit number maps sequentially */
-                        g_bill_table.count++;
-                    }
-                    
+                    continue;
                 }
                 
-                LOG_Info("Bill table loaded from downstream validator");
-            }
-            else {
-                LOG_Warn("APP_GET_BILL_TABLE: failed");
-            }
-        } /* end if g_bill_table.is_loaded == 0 */
-
-        /* respond to data Get Bill Table request*/
-        /* create 24 rows of 5 bytes ccnet response payload */
-        uint8_t data[24*5];
-        uint8_t data_length = 24 * 5;
-        
-        /* Initialize all data to zero */
-        for (uint8_t i = 0; i < data_length; i++)
-        {
-            data[i] = 0;
-        }
-        
-        /* Fill in the bill table data from g_bill_table */
-        for (uint8_t i = 0; i < g_bill_table.count && i < 24; i++)
-        {
-            uint8_t offset = i * 5;
-            uint16_t value = g_bill_table.denoms[i].value;
-            
-            /* Calculate coefficient and exponent from value */
-            uint8_t exponent = 0;
-            uint16_t coefficient = value;
-            while (coefficient >= 10 && exponent < 9)
-            {
-                coefficient /= 10;
-                exponent++;
+                /* Calculate value: coefficient * 10^exponent */
+                uint16_t value = coefficient;
+                for (uint8_t e = 0; e < exponent; e++)
+                {
+                    value *= 10;
+                }
+                
+                /* Store in bill table */
+                if (g_bill_table.count < MAX_BILL_DENOMS)
+                {
+                    g_bill_table.denoms[g_bill_table.count].id003_denom_nr = denom_nr;
+                    g_bill_table.denoms[g_bill_table.count].id003_denom_bitnr = (denom_nr & 0x0F) - 1; /* Extract bit number from denom_nr */
+                    g_bill_table.denoms[g_bill_table.count].value = value;
+                    g_bill_table.denoms[g_bill_table.count].ccnet_bitnr = g_bill_table.count; /* CCNET bit number maps sequentially */
+                    g_bill_table.count++;
+                }
+                
             }
             
-            /* Row format: coefficient, currency[0], currency[1], currency[2], exponent */
-            data[offset + 0] = (uint8_t)coefficient;
-            data[offset + 1] = g_bill_table.currency[0];
-            data[offset + 2] = g_bill_table.currency[1];
-            data[offset + 3] = g_bill_table.currency[2];
-            data[offset + 4] = exponent;
+            LOG_Info("Bill table loaded from downstream validator");
+            g_bill_table.is_loaded = 1;
         }
-
-        RESPOND(CCNET_BILL_TABLE, data, data_length);
-        g_bill_table.is_loaded = 1;
-
-        return;
-
+        else {
+            LOG_Warn("APP_GET_BILL_TABLE: failed");
+        }
     } /* end if PROTO_ID003 */
+}
+
+/**
+  * @brief  Respond with bill table to upstream CCNET controller
+  * @retval None
+  */
+static void APP_RespondBillTable(void)
+{
+    /* If bill table not loaded yet, request it first */
+    if (g_bill_table.is_loaded == 0)
+    {
+        APP_GetBillTable();
+    }
+
+    /* Create 24 rows of 5 bytes CCNET response payload */
+    uint8_t data[24*5];
+    uint8_t data_length = 24 * 5;
+    
+    /* Initialize all data to zero */
+    for (uint8_t i = 0; i < data_length; i++)
+    {
+        data[i] = 0;
+    }
+    
+    /* Fill in the bill table data from g_bill_table */
+    for (uint8_t i = 0; i < g_bill_table.count && i < 24; i++)
+    {
+        uint8_t offset = i * 5;
+        uint16_t value = g_bill_table.denoms[i].value;
+        
+        /* Calculate coefficient and exponent from value */
+        uint8_t exponent = 0;
+        uint16_t coefficient = value;
+        while (coefficient >= 10 && exponent < 9)
+        {
+            coefficient /= 10;
+            exponent++;
+        }
+        
+        /* Row format: coefficient, currency[0], currency[1], currency[2], exponent */
+        data[offset + 0] = (uint8_t)coefficient;
+        data[offset + 1] = g_bill_table.currency[0];
+        data[offset + 2] = g_bill_table.currency[1];
+        data[offset + 3] = g_bill_table.currency[2];
+        data[offset + 4] = exponent;
+    }
+
+    RESPOND(CCNET_BILL_TABLE, data, data_length);
 }
 
 
