@@ -35,8 +35,12 @@
 #define RESPOND(opcode, data, length) APP_SendMessage(&if_upstream, opcode, data, length, 0)
 #define CREATE_RESP(msg) MESSAGE_Create(PROTO_CCNET, MSG_DIR_TX, msg.opcode, msg.data, msg.length);
 
+/* Private defines -----------------------------------------------------------*/
+#define DOWNSTREAM_MSG_TTL_MS 1000  /* Downstream message time to live */
+
 /* Private variables ---------------------------------------------------------*/
 static uint8_t dma_tx_buffer[256];
+static uint32_t last_downstream_msg_time = 0;
 
 /* LED instances */
 LED_HandleTypeDef hled1 = {LD1_GPIO_Port, LD1_Pin, LED_STATE_UNKNOWN};
@@ -132,6 +136,7 @@ interface_config_t if_downstream = {
 /* Private function prototypes -----------------------------------------------*/
 message_parse_result_t APP_CheckForUpstreamMessage(void);
 message_parse_result_t APP_CheckForDownstreamMessage(void);
+static uint32_t APP_GetDownstreamMessageAge(void);
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms);
 static void APP_DownstreamStartup(void);
 static void APP_DownstreamPolling(uint16_t polling_period_ms);
@@ -328,7 +333,9 @@ void APP_Process(void)
                                 REQUEST(ID003_STATUS_REQ, NULL, 0);
                                 APP_WaitForDownstreamMessage(10);
                             }
-                            if (downstream_msg.length > 0)   // if no downstream status was received, length is 0. Let it just timeout*/
+                            
+                            /* Check if downstream message is fresh and valid */
+                            if (downstream_msg.length > 0 && APP_GetDownstreamMessageAge() < DOWNSTREAM_MSG_TTL_MS)
                             {
                                 PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
                                 CREATE_RESP(new_us_msg);
@@ -423,12 +430,35 @@ void APP_Process(void)
       if (UART_CheckForDownstreamData())
       {
           /* Parse the received message */
-          return MESSAGE_Parse(&downstream_msg);
+          message_parse_result_t result = MESSAGE_Parse(&downstream_msg);
+          
+          /* Update timestamp if message was parsed successfully */
+          if (result == MSG_OK)
+          {
+              last_downstream_msg_time = HAL_GetTick();
+          }
+          
+          return result;
       }
       
       /* No message received */
       return MSG_NO_MESSAGE;
   }
+
+/**
+  * @brief  Get age of last downstream message in milliseconds
+  * @retval uint32_t: Age in milliseconds, or UINT32_MAX if no message received yet
+  */
+static uint32_t APP_GetDownstreamMessageAge(void)
+{
+    if (last_downstream_msg_time == 0)
+    {
+        return UINT32_MAX;  /* No message received yet */
+    }
+    
+    uint32_t current_time = HAL_GetTick();
+    return (current_time - last_downstream_msg_time);
+}
 
 /**
   * @brief  Check for upstream message and parse if available

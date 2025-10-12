@@ -276,7 +276,7 @@ static void CONFIG_ShowConfiguration(void)
                        g_config.downstream->datalink.polling_period_ms == 100 ? "100ms (asynchronous)" : 
                        g_config.downstream->datalink.polling_period_ms == 200 ? "200ms (asynchronous)" : 
                        g_config.downstream->datalink.polling_period_ms == 500 ? "500ms (asynchronous)" : 
-                       g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms" : "2s (asynchronous)");
+                       g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms (asynchronous)" : "Custom");
     USB_TransmitString("\r\n");
     
     USB_TransmitString("8.  Show Bill Table\r\n");
@@ -449,8 +449,6 @@ static void CONFIG_DisplayInterfaceSettings(const char* name, interface_config_t
             USB_TransmitString("500ms");
         else if (interface->datalink.polling_period_ms == 1000)
             USB_TransmitString("1000ms");
-        else if (interface->datalink.polling_period_ms == 2000)
-            USB_TransmitString("2s");
         else
             USB_TransmitString("Custom");
         USB_TransmitString("\r\n");
@@ -691,8 +689,7 @@ static void CONFIG_UpdateDownstreamPolling(void)
     USB_TransmitString("3. 200ms\r\n");
     USB_TransmitString("4. 500ms\r\n");
     USB_TransmitString("5. 1000ms\r\n");
-    USB_TransmitString("6. 2s\r\n");
-    CONFIG_DisplayEnterChoice(6);
+    CONFIG_DisplayEnterChoice(5);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -700,7 +697,7 @@ static void CONFIG_UpdateDownstreamPolling(void)
         char input_buffer[16];
         if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
         {
-            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 6);
+            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 5);
             if (choice > 0)
             {
                 switch (choice)
@@ -710,7 +707,6 @@ static void CONFIG_UpdateDownstreamPolling(void)
                     case 3: g_config.downstream->datalink.polling_period_ms = 200; break;
                     case 4: g_config.downstream->datalink.polling_period_ms = 500; break;
                     case 5: g_config.downstream->datalink.polling_period_ms = 1000; break;
-                    case 6: g_config.downstream->datalink.polling_period_ms = 2000; break;
                 }
             }
             else
