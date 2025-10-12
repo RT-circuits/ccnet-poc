@@ -146,8 +146,9 @@ static void MESSAGE_SetRaw(message_t* msg)
             msg->raw[pos++] = 0x03;
             header_length = 2;
             
-            /* CCNET Bill Table response has no opcode field */
-            if (msg->opcode == CCNET_BILL_TABLE && msg->direction == MSG_DIR_RX)
+            /* CCNET Bill Table, Status and Identification response has no opcode field */
+            if ((msg->opcode == CCNET_BILL_TABLE || msg->opcode == CCNET_STATUS_REQUEST || msg->opcode == CCNET_IDENTIFICATION) 
+                && msg->direction == MSG_DIR_RX)
             {
                 skip_opcode = 1;
             }

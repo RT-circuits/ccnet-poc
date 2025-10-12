@@ -16,6 +16,7 @@
 #include "app.h"
 #include "led.h"
 #include "proto.h"
+#include "proto_types.h"
 #include "uart.h"
 #include "usb.h"
 #include "log.h"
@@ -82,6 +83,7 @@ typedef struct {
     downstream_state_t state;
     message_t last_req_msg; /* last request sent downstream to check for ID003 echo*/
     uint32_t last_req_time; /* last request sent time*/
+
 } downstream_context_t;
 
 downstream_context_t ds_context = {
@@ -91,6 +93,7 @@ downstream_context_t ds_context = {
     .startup = DS_NOT_STARTED,
     .state = DS_NO_RESPONSE,
     .last_req_time = 0,
+
 };
 
 /* Message structures for UART data reception */
@@ -218,6 +221,7 @@ void APP_Process(void)
 {
     message_parse_result_t msg_received_status;
     uint8_t downstream_opcode;
+    uint8_t data_buf[6];    /* used for: CCNNET Status and ID003 Enable Request*/
 
     /* Process config/reset button */
     BTN_ProcessConfigResetButton();
@@ -320,7 +324,45 @@ void APP_Process(void)
                         break;
 
                     case CCNET_STATUS_REQUEST:         /* 0x31 - Get Status */
-                        LOG_Warn("CCNET_STATUS_REQUEST not implemented");
+                        /* check enabled denominators */
+                        if (downstream_msg.protocol == PROTO_ID003)
+                        {
+                            /* check inhibit status first*/
+                            REQUEST(ID003_INHIBIT_REQ, NULL, 0);
+                            APP_WaitForDownstreamMessage(20);
+                            if (downstream_msg.length > 0)
+                            {
+                                if (downstream_msg.opcode == ID003_INHIBIT_REQ && downstream_msg.data_length == 1)
+                                {
+                                    if (downstream_msg.data[0] == 1)
+                                    {
+                                        /* inhibit is enabled - respond with zeros (unit disabled) and break*/
+                                        utils_zero(data_buf, 6);
+                                        RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
+                                        break;
+                                    }
+                                }
+                            }
+                            REQUEST(ID003_ENABLE_REQ, NULL, 0);
+                            APP_WaitForDownstreamMessage(20);
+                            if (downstream_msg.length > 0)
+                            {
+                                if (downstream_msg.opcode == ID003_ENABLE_REQ && downstream_msg.data_length == 2)
+                                {   /* first byte of ID003 response is enabled denominators */
+                                    /* response is 2x3 bytes */
+                                    data_buf[0] = 0;
+                                    data_buf[1] = 0;
+                                    data_buf[2] = downstream_msg.data[0];
+                                    data_buf[2] = ~data_buf[2];      /* ID003 0 means enabled, CCNET 1 means enabled*/
+                                    data_buf[2] = data_buf[2]>>1;    /* ID003 first bill starts at bit 1*/
+                                    data_buf[3] = 0;
+                                    data_buf[4] = 0;
+                                    data_buf[5] = 0;
+                                    RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
+                                }
+                                
+                            }
+                        }
                         break;
 
                     case CCNET_POLL:                   /* 0x33 - Poll */
@@ -435,6 +477,7 @@ void APP_Process(void)
           /* Update timestamp if message was parsed successfully */
           if (result == MSG_OK)
           {
+            
               last_downstream_msg_time = HAL_GetTick();
           }
           
@@ -486,7 +529,7 @@ message_parse_result_t APP_CheckForUpstreamMessage(void)
   *         downstream_msg populated
   */
 static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
-{
+{  /* note: take note of expected message length to avoid timeout*/
     uint32_t start_tick = HAL_GetTick();
     message_parse_result_t msg_result = MSG_NO_MESSAGE;
     /* qualified parse results for a retransmit */
