@@ -53,10 +53,6 @@ typedef struct {
 UART_Interface_t uart_intf1;
 UART_Interface_t uart_intf2;
 
-/* Temporary rx bytes for early messages before UART_Init */
-static uint8_t temp_rx_byte1;
-static uint8_t temp_rx_byte2;
-
 /* Exported variables --------------------------------------------------------*/
 uint8_t downstream_rx_flag = 0;
 
@@ -72,27 +68,13 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     datalink_config_t datalink;
     UART_Interface_t *intf = NULL;  /* used for context */
-    
-    /* Check by UART handle pointer, not by interface huart (which might be NULL during init) */
-    if (huart == &huart1) {
+    if (huart == uart_intf1.huart) {
         intf = &uart_intf1; /* Upstream */
         datalink = if_upstream.datalink;
-    } else if (huart == &huart2) {
-        intf = &uart_intf2; /* Downstream */
+    } else if (huart == uart_intf2.huart) { /* Downstream */
+        intf = &uart_intf2;
         datalink = if_downstream.datalink;
     }
-    
-    /* If software layer not initialized yet (huart field not set), restart hardware reception and discard byte */
-    if (intf != NULL && intf->huart == NULL) {
-        if (huart == &huart1) {
-            HAL_UART_Receive_IT(&huart1, &temp_rx_byte1, 1);
-        } else if (huart == &huart2) {
-            HAL_UART_Receive_IT(&huart2, &temp_rx_byte2, 1);
-        }
-        return;
-    }
-    
-    /* Safety check - should not happen now */
     if (intf == NULL) return;
     /* set datalink parameters in context */
     intf->sync_length = datalink.sync_length;
@@ -272,19 +254,8 @@ void UART_Init(interface_config_t* interface, message_t* message)
         intf->rx_buffer[i] = 0;
     }
     
-    /* Abort any ongoing reception and reset UART state */
-    HAL_UART_AbortReceive(intf->huart);
-    
     /* Start receiving first byte */
-    HAL_StatusTypeDef status = HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
-    
-    /* If failed to start reception, try to recover */
-    if (status != HAL_OK) {
-        /* Force UART to idle state */
-        intf->huart->RxState = HAL_UART_STATE_READY;
-        /* Try again */
-        HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
-    }
+    HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
 }
 
 /**
