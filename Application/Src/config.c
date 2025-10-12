@@ -292,6 +292,7 @@ static void CONFIG_ShowConfiguration(void)
         case LOG_LEVEL_WARN:  USB_TransmitString("WARN"); break;
         case LOG_LEVEL_PROTO: USB_TransmitString("PROTO"); break;
         case LOG_LEVEL_INFO:  USB_TransmitString("INFO"); break;
+        case LOG_LEVEL_DEBUG: USB_TransmitString("DEBUG"); break;
         default:              USB_TransmitString("INFO"); break;
     }
     USB_TransmitString("\r\n");
@@ -794,6 +795,7 @@ static void CONFIG_UpdateProtocolLogging(void)
         case LOG_LEVEL_WARN:  USB_TransmitString("WARN"); break;
         case LOG_LEVEL_PROTO: USB_TransmitString("PROTO"); break;
         case LOG_LEVEL_INFO:  USB_TransmitString("INFO"); break;
+        case LOG_LEVEL_DEBUG: USB_TransmitString("DEBUG"); break;
         default:              USB_TransmitString("INFO"); break;
     }
     USB_TransmitString("\r\n");
@@ -801,7 +803,8 @@ static void CONFIG_UpdateProtocolLogging(void)
     USB_TransmitString("2. WARN\r\n");
     USB_TransmitString("3. PROTO\r\n");
     USB_TransmitString("4. INFO\r\n");
-    CONFIG_DisplayEnterChoice(4);
+    USB_TransmitString("5. DEBUG\r\n");
+    CONFIG_DisplayEnterChoice(5);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -809,7 +812,7 @@ static void CONFIG_UpdateProtocolLogging(void)
         char input_buffer[16];
         if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
         {
-            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 4);
+            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 5);
             if (choice > 0)
             {
                 switch (choice)
@@ -818,6 +821,7 @@ static void CONFIG_UpdateProtocolLogging(void)
                     case 2: g_config.log_level = LOG_LEVEL_WARN;  break;
                     case 3: g_config.log_level = LOG_LEVEL_PROTO; break;
                     case 4: g_config.log_level = LOG_LEVEL_INFO;  break;
+                    case 5: g_config.log_level = LOG_LEVEL_DEBUG; break;
                 }
                 LOG_SetLevel(g_config.log_level);
             }

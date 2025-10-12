@@ -36,7 +36,7 @@
 #define CREATE_RESP(msg) MESSAGE_Create(PROTO_CCNET, MSG_DIR_TX, msg.opcode, msg.data, msg.length);
 
 /* Private defines -----------------------------------------------------------*/
-#define DOWNSTREAM_MSG_TTL_MS 1000  /* Downstream message time to live */
+#define DOWNSTREAM_MSG_TTL_MS 1500  /* Downstream message time to live. Keep larger than asynchronous polling period */
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t dma_tx_buffer[256];
@@ -506,7 +506,11 @@ static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
             LOG_Proto(&downstream_msg); 
             
             /* return parse result if OK */
-            if (msg_result == MSG_OK) return MSG_OK;
+            if (msg_result == MSG_OK)
+            {
+                last_downstream_msg_time = HAL_GetTick();
+                return MSG_OK;
+            }
             
             else if (utils_is_member(msg_result, result_arr, sizeof(result_arr)))
             {
