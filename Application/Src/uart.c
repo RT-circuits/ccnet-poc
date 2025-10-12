@@ -254,8 +254,19 @@ void UART_Init(interface_config_t* interface, message_t* message)
         intf->rx_buffer[i] = 0;
     }
     
+    /* Abort any ongoing reception and reset UART state */
+    HAL_UART_AbortReceive(intf->huart);
+    
     /* Start receiving first byte */
-    HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
+    HAL_StatusTypeDef status = HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
+    
+    /* If failed to start reception, try to recover */
+    if (status != HAL_OK) {
+        /* Force UART to idle state */
+        intf->huart->RxState = HAL_UART_STATE_READY;
+        /* Try again */
+        HAL_UART_Receive_IT(intf->huart, &intf->rx_byte, 1);
+    }
 }
 
 /**
