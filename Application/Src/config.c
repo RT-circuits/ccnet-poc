@@ -236,7 +236,7 @@ void CONFIG_ShowMenu(void)
     
     USB_TransmitString("11. Exit and Restart\r\n");
     USB_TransmitString("12. Save, Exit and Restart\r\n");
-    USB_TransmitString("==========================\r\n");
+    USB_TransmitString("======================================================\r\n");
     CONFIG_DisplayEnterChoice(12);
     HAL_Delay(100);
     USB_Flush();
@@ -248,7 +248,7 @@ void CONFIG_ShowMenu(void)
   */
 static void CONFIG_ShowConfiguration(void)
 {
-    USB_TransmitString("\r\n=== CONFIGURATION ===\r\n");
+    USB_TransmitString("\r\n=== CONFIGURATION ====================================\r\n");
     USB_TransmitString("1.  Upstream Protocol        : CCNET - fixed\r\n");
     
     USB_TransmitString("2.  Upstream Baudrate        : ");
@@ -272,11 +272,11 @@ static void CONFIG_ShowConfiguration(void)
     USB_TransmitString("\r\n");
     
     USB_TransmitString("7.  Downstream Polling       : ");
-    USB_TransmitString(g_config.downstream->datalink.polling_period_ms == 0 ? "Disabled" :
-                       g_config.downstream->datalink.polling_period_ms == 100 ? "100ms" : 
-                       g_config.downstream->datalink.polling_period_ms == 200 ? "200ms" : 
-                       g_config.downstream->datalink.polling_period_ms == 500 ? "500ms" : 
-                       g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms" : "2s");
+    USB_TransmitString(g_config.downstream->datalink.polling_period_ms == 0 ? "Disabled  (synchronous)" :
+                       g_config.downstream->datalink.polling_period_ms == 100 ? "100ms (asynchronous)" : 
+                       g_config.downstream->datalink.polling_period_ms == 200 ? "200ms (asynchronous)" : 
+                       g_config.downstream->datalink.polling_period_ms == 500 ? "500ms (asynchronous)" : 
+                       g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms" : "2s (asynchronous)");
     USB_TransmitString("\r\n");
     
     USB_TransmitString("8.  Show Bill Table\r\n");
@@ -295,7 +295,7 @@ static void CONFIG_ShowConfiguration(void)
         default:              USB_TransmitString("INFO"); break;
     }
     USB_TransmitString("\r\n");
-    USB_TransmitString("======================\r\n\r\n");
+    USB_TransmitString("======================================================\r\n\r\n");
 }
 
 /**

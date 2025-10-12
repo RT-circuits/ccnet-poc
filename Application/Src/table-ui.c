@@ -39,7 +39,7 @@ void TABLE_UI_DisplayBillTable(void)
     char buffer[BUFFER_SIZE];
     
     /* Display title */
-    USB_TransmitString("\r\n=== BILL TABLE ===\r\n");
+    USB_TransmitString("\r\n=== BILL TABLE RETRIEVED FROM DOWNSTREAM VALIDATOR ===\r\n");
     USB_TransmitString("|-------------------------------------------------|\r\n");
     
     /* Check if table is loaded */
@@ -74,7 +74,7 @@ void TABLE_UI_DisplayBillTable(void)
     /* Display summary */
     snprintf(buffer, BUFFER_SIZE, "Total denominations: %d\r\n", g_bill_table.count);
     USB_TransmitString(buffer);
-    USB_TransmitString("==================\r\n\r\n");
+    USB_TransmitString("======================================================\r\n\r\n");
 }
 
 /* Private functions ---------------------------------------------------------*/

@@ -463,6 +463,9 @@ static message_parse_result_t APP_WaitForDownstreamMessage(uint32_t timeout_ms)
     uint8_t result_arr[] = {MSG_CRC_INVALID, MSG_DATA_MISSING_FOR_OPCODE};
     LOG_Debug("In APP_WaitForDownstreamMessage");
 
+    /* reset downstream message */
+    downstream_msg.length = 0;
+
     while (1)
     {
         /* Check for downstream data and parse if available */

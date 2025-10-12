@@ -1,0 +1,1349 @@
+
+=== LONG PRESS DETECTED - RESTARTING MCU ===
+
+=== CONFIGURATION ===
+1.  Upstream Protocol        : CCNET - fixed
+2.  Upstream Baudrate        : 9600
+3.  Upstream Parity          : None
+4.  Downstream Protocol      : ID003
+5.  Downstream Baudrate      : 9600
+6.  Downstream Parity        : Even
+7.  Downstream Polling       : Disabled
+8.  Show Bill Table
+9.  USB Logging              : Enabled
+10. Log Level                : PROTO
+======================
+
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+
+DOWN >: ID003_CURRENCY_ASSIGN_REQ               FC 05 8A 7D 7C 
+DOWN <: ID003_CMD_ECHO                          FC 25 8A 61 00 00 00 62 E0 05 00 63 E0 0A 00 64 E0 14 00 65 E0 32 00 66 E0 0A 01 67 E0 14 01 68 E0 32 01 05 C1 
+
+=== BILL TABLE ===
+|-------------------------------------------------|
+|              CCNET           ||    Downstream   |
+| Bill Type | Value | Currency || Denom | Country |
+|-----------|-------|----------||-------|---------|
+|     0     |     5 | EUR      || 0x62  | 0xE0    |
+|     1     |    10 | EUR      || 0x63  | 0xE0    |
+|     2     |    20 | EUR      || 0x64  | 0xE0    |
+|     3     |    50 | EUR      || 0x65  | 0xE0    |
+|     4     |   100 | EUR      || 0x66  | 0xE0    |
+|     5     |   200 | EUR      || 0x67  | 0xE0    |
+|     6     |   500 | EUR      || 0x68  | 0xE0    |
+|-----------|-------|----------||-------|---------|
+Total denominations: 7
+==================
+
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+UP   >: CCNET_ENABLE_BILL_TYPES                 02 03 0C 34 00 00 00 00 00 00 17 0C 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+UP   <: CCNET_STATUS_ACK                        02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_IDENTIFICATION                    02 03 06 37 FE C7 
+WARN:  CCNET_IDENTIFICATION not implemented
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+UP   >: CCNET_ENABLE_BILL_TYPES                 02 03 0C 34 00 00 00 00 00 00 17 0C 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+UP   <: CCNET_STATUS_ACK                        02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_IDENTIFICATION                    02 03 06 37 FE C7 
+WARN:  CCNET_IDENTIFICATION not implemented
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+UP   >: CCNET_ENABLE_BILL_TYPES                 02 03 0C 34 00 00 00 00 00 00 17 0C 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+DOWN >: ID003_INHIBIT                           FC 06 C3 00 04 D6 
+DOWN <: ID003_CMD_ECHO                          FC 06 C3 00 04 D6 
+UP   <: CCNET_STATUS_ACK                        02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_POLL                              02 03 06 33 DA 81 
+DOWN >: ID003_STATUS_REQ                        FC 05 11 27 56 
+DOWN <: ID003_STATUS_IDLING                     FC 05 11 27 56 
+UP   <: CCNET_STATUS_IDLING                     02 03 06 14 67 D4 
+UP   >: CCNET_ACK                               02 03 06 00 C2 82 
+
+UP   >: CCNET_IDENTIFICATION                    02 03 06 37 FE C7 
+WARN:  CCNET_IDENTIFICATION not implemented
