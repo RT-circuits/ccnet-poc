@@ -248,7 +248,7 @@ message_parse_result_t MESSAGE_Parse(message_t* msg)
     
     /* Direction is already set when message is created - no need to detect it here */
     
-    /* Validate opcode with context */
+    /* So far it is a valid message. Validate opcode with context */
     message_parse_result_t opcode_result = MESSAGE_ValidateOpcode(msg);
     if (opcode_result != MSG_OK)
     {

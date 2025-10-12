@@ -85,6 +85,49 @@
 - when ENABLE BILL TYPES is not escrow:
     - ds resp to stack the bill
     - us resp that bill is stacked (when stacked)
+- at startup set ID003 max bills in escrow to 1
 
 ID003: VEND VALID is similar to BILL STACKED + xx. This requires an ACK (!!) STACKED follows after and is then equal to IDLING
+
+
+
+
+
+# Bill types
+## CCNET
+- GET BILL TABLE returns validator characteristics
+    - returns 24x 5 bytes. 
+    - format: V CCC S, Value <10, currency in ASCII, trailing scaling zero's 
+    `['05', '45', '55', '52', '00']` = 5 EUR times 10^0
+    - 5 to 500 returned by CashCode FLS. 
+    ==> config menu: specify denominators and currency
+- ENABLE BILL TYPES
+    - 3 bytes, bit0 is first bill type (e.g. 5eur)
+- POLL response ESCROW and BILL STACKED
+    - 1 byte with denomination nr (0=5eur, 1=10eur, 2=20eur, 3=50eur)
+    - ESCROW 0x80 0x03 verified for 50eur
+==> config menu: specify denominators and currency
+
+## ID003
+- bill table: CURRENCY ASSIGN DATA (0x8A)
+```
+OUT: FC 05 8A 7D 7C CURRENCY_ASSIGN_REQ
+ IN: FC 25 8A 
+ 61 00 00 00 
+ 62 E0 05 00 
+ 63 E0 0A 00 
+ 64 E0 14 00 
+ 65 E0 32 00 
+ 66 E0 0A 01 
+ 67 E0 14 01 
+ 68 E0 32 01 
+ 05 C1
+```
+- ENABLE BILL TYPES
+    - 
+    - needs to be followed by INIBIBIT 0x00 (0x00 turns inhibit off. 0x01 turns it on)
+    - follow up by 0xCD 01: ESCROW LIMIT to 1. ID003 can escrow multiple bills. CCNET cannot
+
+==> config menu started: set ID003 to inhibit
+
 

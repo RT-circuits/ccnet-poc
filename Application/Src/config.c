@@ -18,6 +18,7 @@
 #include "log.h"
 #include "led.h"
 #include "nvm.h"
+#include "table-ui.h"
 
 /* External LED handle */
 extern LED_HandleTypeDef hled3;
@@ -50,7 +51,7 @@ static void CONFIG_UpdateDownstreamProtocol(void);
 static void CONFIG_UpdateDownstreamBaudrate(void);
 static void CONFIG_UpdateDownstreamParity(void);
 static void CONFIG_UpdateDownstreamPolling(void);
-static void CONFIG_UpdateBillTable(void);
+static void CONFIG_ShowBillTable(void);
 static void CONFIG_UpdateUsbLogging(void);
 static void CONFIG_UpdateProtocolLogging(void);
 static void CONFIG_DisplaySeparator(void);
@@ -75,7 +76,7 @@ void CONFIG_Init(void)
     g_config.downstream = &if_downstream;
     
     g_config.usb_logging_enabled = 1;
-    g_config.protocol_logging_verbose = 0;
+    g_config.log_level = LOG_LEVEL_INFO;
     
     /* Initialize bill table to all zeros */
     for (int i = 0; i < 8; i++)
@@ -115,6 +116,8 @@ void CONFIG_LoadFromNVM(void)
             LOG_Warn("Failed to deserialize configuration data, using defaults");
         }
         else {
+            /* Apply log level before logging success message */
+            LOG_SetLevel(g_config.log_level);
             LOG_Info("Configuration loaded from flash successfully");
         }
     }
@@ -276,14 +279,21 @@ static void CONFIG_ShowConfiguration(void)
                        g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms" : "2s");
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("8.  Bill Table               : Binary\r\n");
+    USB_TransmitString("8.  Show Bill Table\r\n");
     
     USB_TransmitString("9.  USB Logging              : ");
     USB_TransmitString(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("10. Protocol Logging         : ");
-    USB_TransmitString(g_config.protocol_logging_verbose ? "Verbose" : "Short");
+    USB_TransmitString("10. Log Level                : ");
+    switch (g_config.log_level)
+    {
+        case LOG_LEVEL_ERROR: USB_TransmitString("ERROR"); break;
+        case LOG_LEVEL_WARN:  USB_TransmitString("WARN"); break;
+        case LOG_LEVEL_PROTO: USB_TransmitString("PROTO"); break;
+        case LOG_LEVEL_INFO:  USB_TransmitString("INFO"); break;
+        default:              USB_TransmitString("INFO"); break;
+    }
     USB_TransmitString("\r\n");
     USB_TransmitString("======================\r\n\r\n");
 }
@@ -333,7 +343,7 @@ void CONFIG_ProcessMenu(void)
                         CONFIG_UpdateDownstreamPolling();
                         break;
                     case CONFIG_MENU_BILL_TABLE:
-                        CONFIG_UpdateBillTable();
+                        CONFIG_ShowBillTable();
                         break;
                     case CONFIG_MENU_USB_LOGGING:
                         CONFIG_UpdateUsbLogging();
@@ -723,59 +733,13 @@ static void CONFIG_UpdateDownstreamPolling(void)
 }
 
 /**
-  * @brief  Update bill table
+  * @brief  Show bill table
   * @retval None
   */
-static void CONFIG_UpdateBillTable(void)
+static void CONFIG_ShowBillTable(void)
 {
-    USB_TransmitString("\r\nCurrent bill table: ");
-    CONFIG_DisplayBillTableBinary();
-    USB_TransmitString("\r\n");
-    USB_TransmitString("Enter new bill table (8 bits, e.g., 10101010): ");
-    
-    // Wait for user input
-    if (CONFIG_WaitForInput())
-    {
-        char input_buffer[16];
-        if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
-        {
-            // Parse binary input
-            uint8_t valid = 1;
-            for (int i = 0; i < 8; i++)
-            {
-                if (input_buffer[i] == '1')
-                {
-                    g_config.bill_table[i] = 1;
-                }
-                else if (input_buffer[i] == '0')
-                {
-                    g_config.bill_table[i] = 0;
-                }
-                else
-                {
-                    valid = 0;
-                    break;
-                }
-            }
-            
-            if (valid)
-            {
-                USB_TransmitString("Bill table updated successfully.\r\n");
-            }
-            else
-            {
-                USB_TransmitString("Invalid input! Bill table unchanged.\r\n");
-            }
-        }
-        else
-        {
-            USB_TransmitString("No input received. Bill table unchanged.\r\n");
-        }
-    }
-    else
-    {
-        USB_TransmitString("Timeout. Bill table unchanged.\r\n");
-    }
+    TABLE_UI_DisplayBillTable();
+    USB_Flush();
 }
 
 /**
@@ -827,12 +791,21 @@ static void CONFIG_UpdateUsbLogging(void)
   */
 static void CONFIG_UpdateProtocolLogging(void)
 {
-    USB_TransmitString("\r\nProtocol Logging: ");
-    USB_TransmitString(g_config.protocol_logging_verbose ? "Verbose" : "Short");
+    USB_TransmitString("\r\nCurrent Log Level: ");
+    switch (g_config.log_level)
+    {
+        case LOG_LEVEL_ERROR: USB_TransmitString("ERROR"); break;
+        case LOG_LEVEL_WARN:  USB_TransmitString("WARN"); break;
+        case LOG_LEVEL_PROTO: USB_TransmitString("PROTO"); break;
+        case LOG_LEVEL_INFO:  USB_TransmitString("INFO"); break;
+        default:              USB_TransmitString("INFO"); break;
+    }
     USB_TransmitString("\r\n");
-    USB_TransmitString("1. Short\r\n");
-    USB_TransmitString("2. Verbose\r\n");
-    CONFIG_DisplayEnterChoice(2);
+    USB_TransmitString("1. ERROR\r\n");
+    USB_TransmitString("2. WARN\r\n");
+    USB_TransmitString("3. PROTO\r\n");
+    USB_TransmitString("4. INFO\r\n");
+    CONFIG_DisplayEnterChoice(4);
     
     // Wait for user input
     if (CONFIG_WaitForInput())
@@ -840,27 +813,34 @@ static void CONFIG_UpdateProtocolLogging(void)
         char input_buffer[16];
         if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
         {
-            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 2);
+            uint8_t choice = CONFIG_ParseChoice(input_buffer, 1, 4);
             if (choice > 0)
             {
-                g_config.protocol_logging_verbose = (choice == 2) ? 1 : 0;
+                switch (choice)
+                {
+                    case 1: g_config.log_level = LOG_LEVEL_ERROR; break;
+                    case 2: g_config.log_level = LOG_LEVEL_WARN;  break;
+                    case 3: g_config.log_level = LOG_LEVEL_PROTO; break;
+                    case 4: g_config.log_level = LOG_LEVEL_INFO;  break;
+                }
+                LOG_SetLevel(g_config.log_level);
             }
             else
             {
-                USB_TransmitString("Invalid choice! Using default (Disabled).\r\n");
-                g_config.protocol_logging_verbose = 0;
+                USB_TransmitString("Invalid choice! Using default (INFO).\r\n");
+                g_config.log_level = LOG_LEVEL_INFO;
             }
         }
         else
         {
-            USB_TransmitString("No input received. Using default (Short).\r\n");
-            g_config.protocol_logging_verbose = 0;
+            USB_TransmitString("No input received. Using default (INFO).\r\n");
+            g_config.log_level = LOG_LEVEL_INFO;
         }
     }
     else
     {
-        USB_TransmitString("No input received. Using default (Short).\r\n");
-        g_config.protocol_logging_verbose = 0;
+        USB_TransmitString("No input received. Using default (INFO).\r\n");
+        g_config.log_level = LOG_LEVEL_INFO;
     }
 }
 
@@ -1141,7 +1121,7 @@ static nvm_result_t CONFIG_SerializeToBuffer(uint8_t* buffer, uint32_t* buffer_s
     
     /* Serialize other configuration fields */
     buffer[offset++] = g_config.usb_logging_enabled;
-    buffer[offset++] = g_config.protocol_logging_verbose;
+    buffer[offset++] = g_config.log_level;
     
     /* Serialize bill table */
     for (int i = 0; i < 8; i++)
@@ -1201,7 +1181,7 @@ static nvm_result_t CONFIG_DeserializeFromBuffer(const uint8_t* buffer, uint32_t
     
     /* Deserialize other configuration fields */
     g_config.usb_logging_enabled = buffer[offset++];
-    g_config.protocol_logging_verbose = buffer[offset++];
+    g_config.log_level = buffer[offset++];
     
     /* Deserialize bill table */
     for (int i = 0; i < 8; i++)

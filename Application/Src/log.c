@@ -15,12 +15,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "log.h"
 #include "usb.h"
+#include "proto.h"
 
 
 /* Private variables ---------------------------------------------------------*/
 static log_level_t current_log_level = LOG_LEVEL_INFO;
 static uint32_t log_counter = 0;
 static uint8_t log_initialized = 0;
+static uint32_t last_proto_log_time = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 static void LOG_PrintHeader(log_level_t level);
@@ -52,7 +54,6 @@ void LOG_Init(void)
 void LOG_SetLevel(log_level_t level)
 {
     current_log_level = level;
-    LOG_Info("Log level changed");
 }
 
 /**
@@ -115,39 +116,51 @@ void LOG_Proto(const message_t* msg)
 {
     if (current_log_level >= LOG_LEVEL_PROTO)
     {
-        LOG_PrintHeader(LOG_LEVEL_PROTO);
+        uint32_t current_time = HAL_GetTick();
+        
+        /* Add blank line if more than 100ms since last protocol log */
+        if ((last_proto_log_time > 0 && (current_time - last_proto_log_time) > 100) ||
+            msg->opcode == ID003_CURRENCY_ASSIGN_REQ && msg->direction == MSG_DIR_TX)
+        {
+            USB_TransmitString("\r\n");
+        }
+        
+        last_proto_log_time = current_time;
+        
+        // LOG_PrintHeader(LOG_LEVEL_PROTO);
         
         // Print protocol
         switch (msg->protocol)
         {
-            case PROTO_ID003:
-                USB_TransmitString("ID003 ");
-                break;
-            case PROTO_CCTALK:
-                USB_TransmitString("CCTALK ");
-                break;
             case PROTO_CCNET:
-                USB_TransmitString("CCNET ");
+                USB_TransmitString("UP   ");
                 break;
             default:
-                USB_TransmitString("UNKNOWN ");
+                USB_TransmitString("DOWN ");
                 break;
         }
         
         // Print direction (TX/RX)
         if (msg->direction == MSG_DIR_TX)
         {
-            USB_TransmitString("TX ");
+            USB_TransmitString(">: ");
         }
         else
         {
-            USB_TransmitString("RX ");
+            USB_TransmitString("<: ");
         }
         
-        // Print opcode ASCII name
+        // Print opcode ASCII name with padding
         const char* opcode_ascii = MESSAGE_GetOpcodeASCII(msg);
         USB_TransmitString(opcode_ascii);
-        USB_TransmitString(" ");
+        
+        // Pad to 40 characters for alignment
+        uint8_t name_len = 0;
+        while (opcode_ascii[name_len] != '\0') name_len++;
+        for (uint8_t i = name_len; i < 40; i++)
+        {
+            USB_TransmitString(" ");
+        }
         
         // Print raw bytes as hex
         char hex_chars[] = "0123456789ABCDEF";
@@ -159,13 +172,7 @@ void LOG_Proto(const message_t* msg)
             USB_TransmitString(hex_buffer);
             USB_TransmitString(" ");
         }
-        if (msg->direction == MSG_DIR_RX)
-        {
-            USB_TransmitString("\r\n\r\n");        }
-        else
-        {
-            USB_TransmitString("\r\n");
-        }
+        USB_TransmitString("\r\n");
         log_counter++;
     }
 }
@@ -187,21 +194,7 @@ void LOG_Debug(const char* message)
     }
 }
 
-/**
-  * @brief  Log verbose message
-  * @param  message: message string
-  * @retval None
-  */
-void LOG_Verbose(const char* message)
-{
-    if (current_log_level >= LOG_LEVEL_VERBOSE)
-    {
-        LOG_PrintHeader(LOG_LEVEL_VERBOSE);
-        USB_TransmitString(message);
-        USB_TransmitString("\r\n");
-        log_counter++;
-    }
-}
+
 
 /**
   * @brief  Log raw string (no formatting)

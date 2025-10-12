@@ -20,6 +20,7 @@
 #include "usb.h"
 #include "log.h"
 #include "config.h"
+#include "table-ui.h"
 #include "btn.h"
 #include "nvm.h"
 #include "message.h"
@@ -198,9 +199,9 @@ void APP_Init(void)
     
     /* Log application startup */
     LOG_Info("Application started");
-
-    
-
+    LOG_Info("Press button for configuration menu (will stop application)");
+    LOG_Info("Long press for reset (will restart application)");
+    LOG_Info("Polling downstream validator for status and bill table\r\n");
     
 }
 
@@ -592,6 +593,7 @@ static void APP_DownstreamStartup(void)
             if (g_bill_table.is_loaded == 1)
             {
                 ds_context.startup = DS_BILL_TABLE_RECEIVED_OK;
+                TABLE_UI_DisplayBillTable();
             }
             break;
 
@@ -650,7 +652,6 @@ static void APP_GetBillTable(void)
         if(APP_WaitForDownstreamMessage(10+42)) /* response is 42ms long */
         {
             LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 bill table");
-            LOG_Proto(&downstream_msg);
             
             /* Parse ID003 currency assignment data */
             /* Format: groups of 4 bytes: denom_nr, country_code, coefficient, exponent */
@@ -685,6 +686,7 @@ static void APP_GetBillTable(void)
                     g_bill_table.denoms[g_bill_table.count].id003_denom_bitnr = (denom_nr & 0x0F) - 1; /* Extract bit number from denom_nr */
                     g_bill_table.denoms[g_bill_table.count].value = value;
                     g_bill_table.denoms[g_bill_table.count].ccnet_bitnr = g_bill_table.count; /* CCNET bit number maps sequentially */
+                    g_bill_table.denoms[g_bill_table.count].country_code = country_code;
                     g_bill_table.count++;
                 }
                 
@@ -692,6 +694,7 @@ static void APP_GetBillTable(void)
             
             LOG_Info("Bill table loaded from downstream validator");
             g_bill_table.is_loaded = 1;
+            
         }
         else {
             LOG_Warn("APP_GET_BILL_TABLE: failed");

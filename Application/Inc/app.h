@@ -36,6 +36,7 @@ typedef struct
     uint8_t id003_denom_bitnr;  /* ID003 bit number (0-7) */
     uint16_t value;             /* Denomination value in currency units */
     uint8_t ccnet_bitnr;        /* CCNET bit number (0-23) */
+    uint8_t country_code;       /* Country code from ID003 response */
 } bill_denom_t;
 
 /**

@@ -33,7 +33,7 @@ typedef struct
     interface_config_t* upstream;     /* Pointer to upstream interface configuration */
     interface_config_t* downstream;   /* Pointer to downstream interface configuration */
     uint8_t usb_logging_enabled;     /* USB logging enabled flag */
-    uint8_t protocol_logging_verbose; /* Protocol logging verbosity */
+    uint8_t log_level;               /* Log level (LOG_LEVEL_ERROR, WARN, PROTO, INFO) */
     uint8_t bill_table[8];           /* Bill table mapping (8 bits) */
 } config_settings_t;
 
