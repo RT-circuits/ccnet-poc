@@ -348,7 +348,7 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 case 0x80: return "CCNET_STATUS_ESCROW_POSITION";
                 case 0x81: return "CCNET_STATUS_BILL_STACKED";
                 case 0x82: return "CCNET_STATUS_BILL_RETURNED";
-                default: return "CCNET_RX_UNKNOWN";
+                default: return "CCNET RESP";
             }
         }
     }
@@ -381,6 +381,7 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 case 0x88: return "ID003_VERSION_REQ";
                 case 0x89: return "ID003_BOOT_VERSION_REQ";
                 case 0x8A: return "ID003_CURRENCY_ASSIGN_REQ";
+                case 0x91: return "ID003_SERIAL_NUMBER_REQ";
                 default: return "ID003_TX_UNKNOWN";
             }
         }
@@ -417,7 +418,7 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 default: break;
             }
             /* check for ID003 echo*/
-            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A};
+            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A, 0x91};
             if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
                 return "ID003_CMD_ECHO";
             } else {
@@ -524,6 +525,7 @@ message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg)
                 case 0x88: /* ID003_VERSION_REQ */
                 case 0x89: /* ID003_BOOT_VERSION_REQ */
                 case 0x8A: /* ID003_CURRENCY_ASSIGN_REQ */
+                case 0x91: /* ID003_SERIAL_NUMBER_REQ */
                     return MSG_OK;
                 default:
                     return MSG_UNKNOWN_OPCODE;
@@ -536,7 +538,7 @@ message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg)
                 return MSG_OK;
             }
             /* check for ID003 echo*/
-            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A};
+            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A, 0x91};
             if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
                 return MSG_OK;
             }

@@ -360,7 +360,6 @@ void APP_Process(void)
                                     data_buf[5] = 0;
                                     RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
                                 }
-                                
                             }
                         }
                         break;
@@ -412,7 +411,35 @@ void APP_Process(void)
                         break;
 
                     case CCNET_IDENTIFICATION:         /* 0x37 - Identification */
-                        LOG_Warn("CCNET_IDENTIFICATION not implemented");
+                        {
+                            uint8_t ident_data[34];  /* CCNET identification response: 34 bytes */
+                            /* Initialize all data to zero */
+                            utils_zero(ident_data, 34);
+                            
+                            /* Z1-Z15: Part Number (ASCII) - initialize with spaces */
+                            const char spaces[] = "               ";  /* 15 spaces */
+                            utils_memcpy(ident_data, (uint8_t*)spaces, 15);
+                            
+                            if (downstream_msg.protocol == PROTO_ID003)
+                            {
+                                /* Model: "ID003" */
+                                utils_memcpy(ident_data, (uint8_t*)"ID003", 5);
+                                
+                                /* Request serial number from ID003 validator */
+                                REQUEST(ID003_SERIAL_NUMBER_REQ, NULL, 0);
+                                APP_WaitForDownstreamMessage(40);
+                                
+                                /* Z16-Z27: Serial Number (ASCII) - copy up to 12 chars from ID003 response */
+                                if (downstream_msg.length > 0 && downstream_msg.opcode == ID003_SERIAL_NUMBER_REQ && downstream_msg.data_length > 0)
+                                {
+                                    uint8_t serial_len = (downstream_msg.data_length > 12) ? 12 : downstream_msg.data_length;
+                                    utils_memcpy(&ident_data[15], downstream_msg.data, serial_len);
+                                }
+                            }
+                            
+                            /* Z28-Z34: Asset Number (Binary) - zeros (already set by utils_zero) */
+                            RESPOND(CCNET_IDENTIFICATION, ident_data, 34);
+                        }
                         break;
 
                     case CCNET_BILL_TABLE:             /* 0x41 - Get Bill Table */

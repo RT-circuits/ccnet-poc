@@ -66,6 +66,7 @@ typedef struct message_t message_t;
 #define ID003_VERSION_REQ          0x88
 #define ID003_BOOT_VERSION_REQ     0x89
 #define ID003_CURRENCY_ASSIGN_REQ  0x8A
+#define ID003_SERIAL_NUMBER_REQ    0x91
 
 //###########################################################################################
 //# ID003 Receive: Status Responses
