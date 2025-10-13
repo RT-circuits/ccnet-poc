@@ -28,7 +28,6 @@
 #include "utils.h"
 #include "../Tests/tests.h"
 
-#define LOG_LEVEL LOG_LEVEL_INFO
 
 /* Message sending macros ----------------------------------------------------*/
 #define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 0)
@@ -184,8 +183,7 @@ void APP_Init(void)
     
     /* Initialize Log module */
     LOG_Init();
-    LOG_SetLevel(LOG_LEVEL);
-
+ 
     /* Initialize messages for UART reception */
     /* CCNET: We receive TX commands from bill validator */
     /* ID003: We receive RX responses from bill validator */
@@ -365,6 +363,12 @@ void APP_Process(void)
                                     RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
                                 }
                             }
+                            
+                            /* Display bill table if log level is INFO */
+                            if (g_config.log_level == LOG_LEVEL_INFO)
+                            {
+                                TABLE_UI_DisplayBillTable();
+                            }
                         }
                         break;
 
@@ -419,6 +423,12 @@ void APP_Process(void)
                                 REQUEST(ID003_INHIBIT, inhibit_data, 1);
                                 APP_WaitForDownstreamMessage(10); /* wait for inhibit response to respond upstream*/
                                 RESPOND(CCNET_STATUS_ACK, NULL, 0); /* todo to respond NAK */
+                            }
+                            
+                            /* Display bill table if log level is INFO */
+                            if (g_config.log_level == LOG_LEVEL_INFO)
+                            {
+                                TABLE_UI_DisplayBillTable();
                             }
                         }
                         break;
@@ -776,7 +786,6 @@ static void APP_GetBillTable(void)
         REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
         
         /* Wait for response */
-        uint8_t purge;
         if(APP_WaitForDownstreamMessage(10+42)) /* response is 42ms long */
         {
             LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 bill table");
@@ -823,19 +832,25 @@ static void APP_GetBillTable(void)
             LOG_Info("Bill table loaded from downstream validator");
             g_bill_table.is_loaded = 1;
 
-            /* Request enabled status. Mainly for bill table display at startup and in config menu */
-            REQUEST(ID003_ENABLE_REQ, NULL, 0);
-            
-            /* Wait for response */
-            if(APP_WaitForDownstreamMessage(20)) 
+            /* Get downstream bill status. Mainly for bill table display at startup and in config menu */
+            g_bill_table.ds_enabled_bills = 0;
+
+            /* first: request inhibit status*/
+            REQUEST(ID003_INHIBIT_REQ, NULL, 0);
+            if(APP_WaitForDownstreamMessage(20) && downstream_msg.opcode == ID003_INHIBIT_REQ && downstream_msg.data_length == 1)
             {
-                LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 enable status");
-                g_bill_table.ds_enabled_bills = (~downstream_msg.data[0])>>1;
-                g_bill_table.ds_escrowed_bills = 0x00007f;
-            }
-            
-            
-        }
+                /* second: request enable status*/
+                if (downstream_msg.data[0] == 0)
+                {
+                    REQUEST(ID003_ENABLE_REQ, NULL, 0);
+                    if(APP_WaitForDownstreamMessage(20) && downstream_msg.opcode == ID003_ENABLE_REQ && downstream_msg.data_length == 2)
+                    {
+                        g_bill_table.ds_enabled_bills = (~downstream_msg.data[0])>>1;
+                        g_bill_table.ds_escrowed_bills = 0x00007f;
+                    }
+                }
+            } /* end if inhibit status*/          
+        } 
         else {
             LOG_Warn("APP_GET_BILL_TABLE: failed");
         }
