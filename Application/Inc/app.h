@@ -49,6 +49,10 @@ typedef struct
     char currency[4];           /* Currency code (e.g., "EUR", "USD") */
     bill_denom_t denoms[MAX_BILL_DENOMS]; /* Denomination table */
     uint8_t count;              /* Number of denominations */
+    uint32_t enabled_bills;     /* CCNET perspective - enabled bills in 32 long bitmask bit0 is bill type 0. 1=YES, 0=NO*/
+    uint32_t escrowed_bills;    /* Escrowed bills in 32 long bitmask bit0 is bill type 0*/
+    uint32_t ds_enabled_bills;  /* Downstream perspective. 1=YES, 0=NO*/
+    uint32_t ds_escrowed_bills; /* Downstream perspective - escrowed bills in 32 long bitmask bit0 is bill type 0*/
 } bill_table_t;
 
 /**

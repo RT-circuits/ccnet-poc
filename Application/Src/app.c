@@ -104,7 +104,11 @@ message_t downstream_msg;  /* ID003 messages from downstream */
 bill_table_t g_bill_table = {
     .is_loaded = 0,                     /* only load the downstream bill table once by using this flag*/
     .currency = "EUR",
-    .count = 0
+    .count = 0,
+    .enabled_bills = 0,
+    .escrowed_bills = 0,
+    .ds_enabled_bills = 0,
+    .ds_escrowed_bills = 0,
 };
 
 
@@ -355,9 +359,9 @@ void APP_Process(void)
                                     data_buf[2] = downstream_msg.data[0];
                                     data_buf[2] = ~data_buf[2];      /* ID003 0 means enabled, CCNET 1 means enabled*/
                                     data_buf[2] = data_buf[2]>>1;    /* ID003 first bill starts at bit 1*/
-                                    data_buf[3] = 0;
-                                    data_buf[4] = 0;
-                                    data_buf[5] = 0;
+                                    data_buf[3] = 0xFF;              /* all escrow for now*/
+                                    data_buf[4] = 0xFF;
+                                    data_buf[5] = 0xFF;
                                     RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
                                 }
                             }
@@ -391,14 +395,31 @@ void APP_Process(void)
 
                     case CCNET_ENABLE_BILL_TYPES:      /* 0x34 - Enable Bill Types */
                         {
-                            uint8_t enable_data[1] ={0};  /* 0: enable all bill types*/
-                            REQUEST(ID003_INHIBIT, enable_data, 1);
-                            APP_WaitForDownstreamMessage(10); /* wait for enable response. do nothing now*/
+                            /* store response in bill table*/
+                            uint8_t* b = upstream_msg.data;
+                            g_bill_table.enabled_bills = b[2] + (b[1]<<8) + (b[0]<<16);  /* 23 bits of CCNET enabled bills (1=enabled)*/
+                            g_bill_table.escrowed_bills = b[5] + (b[4]<<8) + (b[3]<<16);
+                            g_bill_table.escrowed_bills = 0xffffff; /* ID003 does not handle non escrowed bills. Automation for it possible though*/
 
-                            uint8_t inhibit_data[1] ={0};  /* 0: de-inhibit*/
-                            REQUEST(ID003_INHIBIT, inhibit_data, 1);
-                            APP_WaitForDownstreamMessage(10); /* wait for inhibit response to respond upstream*/
-                            RESPOND(CCNET_STATUS_ACK, NULL, 0); /* todo to respond NAK */
+                            if (downstream_msg.protocol == PROTO_ID003)
+                            {
+                                g_bill_table.escrowed_bills = 0x00007f;    /* ID003 does not handle non escrowed bills. Automation for it possible though*/
+                                g_bill_table.ds_escrowed_bills = 0x00007f;
+                                g_bill_table.ds_enabled_bills = g_bill_table.enabled_bills & 0x7f;  /* ID003: max 7 bills */
+
+                                uint8_t enable_data[2] = {0,0};   /* first byte: enabled bills, second 0 by spec)*/
+                                enable_data[0] = g_bill_table.ds_enabled_bills;
+                                enable_data[0] = ~enable_data[0];  /* ID003 0 means enabled*/
+                                enable_data[0] = enable_data[0]<<1;  /* ID003 first bill starts at bit 1*/
+
+                                REQUEST(ID003_ENABLE, enable_data, 2);
+                                APP_WaitForDownstreamMessage(10); /* wait for enable response. do nothing now*/
+
+                                uint8_t inhibit_data[1] ={0};  /* 0: de-inhibit*/
+                                REQUEST(ID003_INHIBIT, inhibit_data, 1);
+                                APP_WaitForDownstreamMessage(10); /* wait for inhibit response to respond upstream*/
+                                RESPOND(CCNET_STATUS_ACK, NULL, 0); /* todo to respond NAK */
+                            }
                         }
                         break;
 
@@ -754,7 +775,7 @@ static void APP_GetBillTable(void)
         /* Request currency assignment/bill table from ID003 validator */
         REQUEST(ID003_CURRENCY_ASSIGN_REQ, NULL, 0);
         
-        /* Wait 10ms for response */
+        /* Wait for response */
         uint8_t purge;
         if(APP_WaitForDownstreamMessage(10+42)) /* response is 42ms long */
         {
@@ -801,6 +822,18 @@ static void APP_GetBillTable(void)
             
             LOG_Info("Bill table loaded from downstream validator");
             g_bill_table.is_loaded = 1;
+
+            /* Request enabled status. Mainly for bill table display at startup and in config menu */
+            REQUEST(ID003_ENABLE_REQ, NULL, 0);
+            
+            /* Wait for response */
+            if(APP_WaitForDownstreamMessage(20)) 
+            {
+                LOG_Debug("APP_GET_BILL_TABLE: parsing ID003 enable status");
+                g_bill_table.ds_enabled_bills = (~downstream_msg.data[0])>>1;
+                g_bill_table.ds_escrowed_bills = 0x00007f;
+            }
+            
             
         }
         else {
