@@ -17,6 +17,7 @@
 #include "led.h"
 #include "proto.h"
 #include "proto_types.h"
+#include "stm32g4xx_hal.h"
 #include "uart.h"
 #include "usb.h"
 #include "log.h"
@@ -29,11 +30,16 @@
 #include "../Tests/tests.h"
 
 
+
 /* Message sending macros ----------------------------------------------------*/
-#define REQUEST(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 0)
-#define REQUEST_DMA(opcode, data, length) APP_SendMessage(&if_downstream, opcode, data, length, 1)
-#define RESPOND(opcode, data, length) APP_SendMessage(&if_upstream, opcode, data, length, 0)
-#define CREATE_RESP(msg) MESSAGE_Create(PROTO_CCNET, MSG_DIR_TX, msg.opcode, msg.data, msg.length);
+#define REQUEST(opcode, data, data_length) APP_SendMessage(&if_downstream, opcode, data, data_length, 0)
+#define REQUEST_DMA(opcode, data, data_length) APP_SendMessage(&if_downstream, opcode, data, data_length, 1)
+#define RESPOND(opcode, data, data_length) APP_SendMessage(&if_upstream, opcode, data, data_length, 0)
+#define CREATE_RESP(msg) MESSAGE_Create(PROTO_CCNET, MSG_DIR_TX, msg.opcode, msg.data, msg.data_length);
+#define WAIT_FOR_DS_MSG(timeout, expected_opcode, expected_length) \
+    (APP_WaitForDownstreamMessage(timeout) && \
+     downstream_msg.opcode == (expected_opcode) && \
+     downstream_msg.data_length == (expected_length))
 
 /* Private defines -----------------------------------------------------------*/
 #define DOWNSTREAM_MSG_TTL_MS 1500  /* Downstream message time to live. Keep larger than asynchronous polling period */
@@ -76,13 +82,22 @@ typedef enum {
     DS_OK,
 } downstream_state_t;
 
+typedef enum {
+    ESCROW_IDLE = 0,
+    ESCROW_IN_ESCROW,
+    ESCROW_IN_STACK,
+    ESCROW_STACKING,
+    ESCROW_STACKED,
+} escrow_state_t;
+
 typedef struct {
     poller_t poller;
     startup_state_t startup;
     downstream_state_t state;
     message_t last_req_msg; /* last request sent downstream to check for ID003 echo*/
     uint32_t last_req_time; /* last request sent time*/
-
+    escrow_state_t escrow_state;
+    uint8_t escrow_bill_type_nr;  /* bill type in CCNET 0-23 format*/
 } downstream_context_t;
 
 downstream_context_t ds_context = {
@@ -92,6 +107,7 @@ downstream_context_t ds_context = {
     .startup = DS_NOT_STARTED,
     .state = DS_NO_RESPONSE,
     .last_req_time = 0,
+    .escrow_state = ESCROW_IDLE,
 
 };
 
@@ -224,6 +240,8 @@ void APP_Process(void)
     message_parse_result_t msg_received_status;
     uint8_t downstream_opcode;
     uint8_t data_buf[6];    /* used for: CCNNET Status and ID003 Enable Request*/
+    static uint8_t CCNET_ENABLE_BILL_TYPES_errors = 0;   /* used for: if downstream bill enabling fails respond with NACK first and timeout afterwards*/
+    static uint32_t CCNET_ENABLE_BILL_TYPES_last_error_time_ms = 0;  /* used for: timeout if Controller keeps retransmitting request */
 
     /* Process config/reset button */
     BTN_ProcessConfigResetButton();
@@ -261,9 +279,26 @@ void APP_Process(void)
         switch (msg_received_status)
         {
             case MSG_OK:
-                // TODO: process downstream message
                 LOG_Debug("Downstream message received OK");
                 LOG_Proto(&downstream_msg);
+
+                switch(downstream_msg.opcode)
+                {
+                    case ID003_STATUS_ESCROW:
+                        ds_context.escrow_state = ESCROW_IN_ESCROW;
+                        uint8_t id003_denom_nr = downstream_msg.data[0];
+                        ds_context.escrow_bill_type_nr = id003_denom_nr - g_bill_table.denoms[0].id003_denom_nr;
+                        
+
+
+
+
+
+
+                        break;
+                }
+                // TODO: process downstream message
+
                 if (PROTO_IsId003StatusCode(downstream_msg.opcode))
                 {
                     LOG_Debug("Downstream ID003 status code parsed to upstream msg object");
@@ -319,10 +354,18 @@ void APP_Process(void)
 
                     case CCNET_RESET:                  /* 0x30 - Reset */
                         REQUEST(ID003_RESET, NULL, 0);
-                        if (APP_WaitForDownstreamMessage(10) != MSG_NO_MESSAGE)
+                        if(WAIT_FOR_DS_MSG(100, ID003_STATUS_ACK, 0))
+                        {
                             RESPOND(CCNET_STATUS_ACK, NULL, 0);
+                            /* reset MCU */
+                            LOG_Warn("Resetting MCU");
+                            APP_MCUReset();
+                            
+                        }
                         else
+                        {
                             RESPOND(CCNET_STATUS_NAK, NULL, 0);
+                        }
                         break;
 
                     case CCNET_STATUS_REQUEST:         /* 0x31 - Get Status */
@@ -341,6 +384,7 @@ void APP_Process(void)
                                         /* inhibit is enabled - respond with zeros (unit disabled) and break*/
                                         utils_zero(data_buf, 6);
                                         RESPOND(CCNET_STATUS_REQUEST, data_buf, 6);
+                                        if (g_config.log_level >= LOG_LEVEL_INFO) TABLE_UI_DisplayBillTable();
                                         break;
                                     }
                                 }
@@ -365,7 +409,7 @@ void APP_Process(void)
                             }
                             
                             /* Display bill table if log level is INFO */
-                            if (g_config.log_level == LOG_LEVEL_INFO)
+                            if (g_config.log_level >= LOG_LEVEL_INFO)
                             {
                                 TABLE_UI_DisplayBillTable();
                             }
@@ -380,15 +424,44 @@ void APP_Process(void)
                             if (if_downstream.datalink.polling_period_ms == 0)
                             {
                                 REQUEST(ID003_STATUS_REQ, NULL, 0);
-                                APP_WaitForDownstreamMessage(10);
-                            }
+                                APP_WaitForDownstreamMessage(20);
+                                switch(downstream_msg.opcode)
+                                {
+                                    case ID003_STATUS_ESCROW:
+                                        ds_context.escrow_state = ESCROW_IN_ESCROW;
+                                        uint8_t id003_denom_nr = downstream_msg.data[0];
+                                        ds_context.escrow_bill_type_nr = id003_denom_nr - g_bill_table.denoms[0].id003_denom_nr;
+                                        break;
+                                }
+                                            }
                             
-                            /* Check if downstream message is fresh and valid */
-                            if (downstream_msg.length > 0 && APP_GetDownstreamMessageAge() < DOWNSTREAM_MSG_TTL_MS)
+                            switch(ds_context.escrow_state)
                             {
-                                PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
-                                CREATE_RESP(new_us_msg);
-                                RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.length);
+                                case ESCROW_IDLE:
+                                    /* no escrow in progress*/
+                                    /* Check if downstream message is fresh and valid */
+                                    if (downstream_msg.length > 0 && APP_GetDownstreamMessageAge() < DOWNSTREAM_MSG_TTL_MS)
+                                    {
+                                        /* handle all non escrow related messages. Status, Rejection, Failures */
+                                        PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+                                        CREATE_RESP(new_us_msg);
+                                        RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.data_length);
+                                    }
+                                    else __NOP(); /* just let CCNET POLL timeout*/
+                                    break;
+                                case ESCROW_IN_ESCROW:
+                                    /* escrow in progress*/
+                                    RESPOND(CCNET_STATUS_ESCROW_POSITION, &ds_context.escrow_bill_type_nr, 1);
+                                    break;
+                                case ESCROW_IN_STACK:
+                                    /* escrow in stack*/
+                                    break;
+                                case ESCROW_STACKING:
+                                    /* escrow stacking*/
+                                    break;
+                                case ESCROW_STACKED:
+                                    /* escrow stacked*/
+                                    break;
                             }
                         }
                         else
@@ -399,37 +472,66 @@ void APP_Process(void)
 
                     case CCNET_ENABLE_BILL_TYPES:      /* 0x34 - Enable Bill Types */
                         {
-                            /* store response in bill table*/
                             uint8_t* b = upstream_msg.data;
-                            g_bill_table.enabled_bills = b[2] + (b[1]<<8) + (b[0]<<16);  /* 23 bits of CCNET enabled bills (1=enabled)*/
-                            g_bill_table.escrowed_bills = b[5] + (b[4]<<8) + (b[3]<<16);
-                            g_bill_table.escrowed_bills = 0xffffff; /* ID003 does not handle non escrowed bills. Automation for it possible though*/
+                            uint32_t enabled_bills = b[2] + (b[1]<<8) + (b[0]<<16);  /* 23 bits of CCNET enabled bills (1=enabled)*/
+                            uint8_t ack = 0;
 
                             if (downstream_msg.protocol == PROTO_ID003)
                             {
+                                /* first: disable all bill types. If this sequence fails there is a risk of wrong Controller state */
+                                /* error flow: first downstream error: NACK, subsequent errors: timeout */ 
+                                uint8_t enable_data[2] = {0xFF,0};   /* first byte: enabled bills (0=enable), second 0 by spec)*/
+                                REQUEST(ID003_ENABLE, enable_data, 2);
+                                if(WAIT_FOR_DS_MSG(20, ID003_ENABLE, 2))
+                                {
+                                    enable_data[0] = enabled_bills & 0xff;
+                                    enable_data[0] = ~enable_data[0];  /* ID003 0 means enabled*/
+                                    enable_data[0] = enable_data[0]<<1;  /* ID003 first bill starts at bit 1*/
+
+                                    REQUEST(ID003_ENABLE, enable_data, 2); /* second: enable bills*/
+                                    if(WAIT_FOR_DS_MSG(20, ID003_ENABLE, 2)) 
+                                    {                                    
+                                        /* second: de-inibit*/
+                                        uint8_t inhibit_data[1] ={0};  /* 0: de-inhibit*/
+                                        REQUEST(ID003_INHIBIT, inhibit_data, 1); /* third: de-inhibit*/
+                                        if(WAIT_FOR_DS_MSG(20, ID003_INHIBIT, 1)) ack++; /* only ack if all three successful*/
+                                    }
+                                }
+                            }
+
+                            if (ack == 1) /* process successful*/
+                            {
+                                /* store response in bill table*/
+                                g_bill_table.enabled_bills = b[2] + (b[1]<<8) + (b[0]<<16);  /* 23 bits of CCNET enabled bills (1=enabled)*/
+                                g_bill_table.escrowed_bills = b[5] + (b[4]<<8) + (b[3]<<16);
+                                g_bill_table.escrowed_bills = 0xffffff; /* ID003 does not handle non escrowed bills. Automation for it possible though*/
+    
                                 g_bill_table.escrowed_bills = 0x00007f;    /* ID003 does not handle non escrowed bills. Automation for it possible though*/
                                 g_bill_table.ds_escrowed_bills = 0x00007f;
                                 g_bill_table.ds_enabled_bills = g_bill_table.enabled_bills & 0x7f;  /* ID003: max 7 bills */
 
-                                uint8_t enable_data[2] = {0,0};   /* first byte: enabled bills, second 0 by spec)*/
-                                enable_data[0] = g_bill_table.ds_enabled_bills;
-                                enable_data[0] = ~enable_data[0];  /* ID003 0 means enabled*/
-                                enable_data[0] = enable_data[0]<<1;  /* ID003 first bill starts at bit 1*/
-
-                                REQUEST(ID003_ENABLE, enable_data, 2);
-                                APP_WaitForDownstreamMessage(10); /* wait for enable response. do nothing now*/
-
-                                uint8_t inhibit_data[1] ={0};  /* 0: de-inhibit*/
-                                REQUEST(ID003_INHIBIT, inhibit_data, 1);
-                                APP_WaitForDownstreamMessage(10); /* wait for inhibit response to respond upstream*/
-                                RESPOND(CCNET_STATUS_ACK, NULL, 0); /* todo to respond NAK */
+                                RESPOND(CCNET_ACK, NULL, 0); 
+                                if (g_config.log_level >= LOG_LEVEL_INFO)
+                                {
+                                    LOG_Info("Updated enable data in bill table:");
+                                    TABLE_UI_DisplayBillTable();
+                                }
                             }
-                            
-                            /* Display bill table if log level is INFO */
-                            if (g_config.log_level == LOG_LEVEL_INFO)
+                            else 
                             {
-                                TABLE_UI_DisplayBillTable();
-                            }
+                                /* start with couple NAK respones. if Controller retransmits follow up by timeouts*/
+                                if (CCNET_ENABLE_BILL_TYPES_errors++ < 2){
+                                    RESPOND(CCNET_NAK, NULL, 0);    /* NAK for first 2 subsequent transmissions */
+                                }
+                                else {
+                                    __NOP(); /* in principle do nothing. signal the error by just timing out*/
+                                    if (HAL_GetTick() - CCNET_ENABLE_BILL_TYPES_last_error_time_ms > 10000){
+                                        RESPOND(CCNET_NAK, NULL, 0);    /* new error. first one in 10000ms */
+                                        CCNET_ENABLE_BILL_TYPES_errors = 0; 
+                                    }
+                                }
+                                CCNET_ENABLE_BILL_TYPES_last_error_time_ms = HAL_GetTick();
+                            }                              
                         }
                         break;
 
@@ -526,7 +628,7 @@ void APP_Process(void)
   */
   message_parse_result_t APP_CheckForDownstreamMessage(void)
   {
-      /* Check for downstream data and parse if available */
+      /* Check for downstream data (tested for datalink validity) and parse if available */
       if (UART_CheckForDownstreamData())
       {
           /* Parse the received message */
@@ -656,7 +758,7 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
     /* Create message ready for transmission */
     tx_msg = MESSAGE_Create(interface->protocol, direction, opcode, data, data_length);
     if (interface == &if_downstream) {
-        /* creaate a copy of last request message and store to check for echo*/
+        /* create a copy of last request message and store to check for echo*/
         message_t last_ds_msg;
         last_ds_msg = MESSAGE_Create(interface->protocol, MSG_DIR_RX, tx_msg.opcode, tx_msg.data, tx_msg.length);
         ds_context.last_req_msg = last_ds_msg;
@@ -837,19 +939,19 @@ static void APP_GetBillTable(void)
 
             /* first: request inhibit status*/
             REQUEST(ID003_INHIBIT_REQ, NULL, 0);
-            if(APP_WaitForDownstreamMessage(20) && downstream_msg.opcode == ID003_INHIBIT_REQ && downstream_msg.data_length == 1)
+            if(WAIT_FOR_DS_MSG(20, ID003_INHIBIT_REQ, 1))
             {
                 /* second: request enable status*/
                 if (downstream_msg.data[0] == 0)
                 {
                     REQUEST(ID003_ENABLE_REQ, NULL, 0);
-                    if(APP_WaitForDownstreamMessage(20) && downstream_msg.opcode == ID003_ENABLE_REQ && downstream_msg.data_length == 2)
+                    if(WAIT_FOR_DS_MSG(20, ID003_ENABLE_REQ, 2))
                     {
                         g_bill_table.ds_enabled_bills = (~downstream_msg.data[0])>>1;
                         g_bill_table.ds_escrowed_bills = 0x00007f;
                     }
                 }
-            } /* end if inhibit status*/          
+            } else LOG_Warn("No ID003_INHIBIT_REQ response");         
         } 
         else {
             LOG_Warn("APP_GET_BILL_TABLE: failed");

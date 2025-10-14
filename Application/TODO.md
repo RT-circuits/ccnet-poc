@@ -120,7 +120,7 @@ typedef struct
 - ENABLE 01 accepts all bills. ENABLE FF none. Sets state to DISABLE even
 
 - non ENABLED bill gives REJECTING 79 
-- ENABLED 10eur gives ACCEPTING follwed by ESCROW 63. 20eur: ESCROW 64. 5eur: 62
+- ENABLED 10eur gives ACCEPTING follwed by ESCROW 63. 20eur: ESCROW 64. 5eur: 62, 0x65=50eur
 - ESCROW timeout gives REJECTING 79 after 11s
 
 ICB

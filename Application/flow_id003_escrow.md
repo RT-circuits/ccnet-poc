@@ -82,21 +82,25 @@
 
 ## Combined ID003/CCNET Escrow Happy Flow
 
-| Controller | Proxy Resp | Proxy Req | Validator Response | escrow_state | Notes |
-|------------|------------|-----------|-------------------|--------------|---|
-| | | POLL | ENABLE(IDLING) | idle | |
-| | | POLL | ACCEPTING | idle | |
-| POLL| ACCEPTING|  |  | idle | |
-| | | POLL | ACCEPTING | idle| |
-| | | POLL | ESCROW + 0x6x | in_escrow |10s max|
-| | | POLL | ESCROW + 0x6x | in_escrow |10s max|
-|POLL| ESCROW_POSITION + bits ||||||
-| | | **STACK_1** | ACK | | |
-| | | POLL | STACKING |  | |
-| | | POLL | VEND_VALID + 0x6x | d | |
-| | |**ACK**|no resp|||
-| | | POLL | STACKED |  | |
-| | | POLL | ENABLE(IDLING) |  | |
+| Controller |escrow state |Proxy Resp | Proxy Req | Validator Response | escrow_state | Notes |
+|------------|---|---------|-----------|-------------------|--------------|---|
+||| | POLL | ENABLE(IDLING) | idle | |
+|| | | POLL | ACCEPTING |  | remains idle|
+| POLL|idle| ACCEPTING|  |  |  | |
+| | | |POLL | ACCEPTING | | |
+| | | |POLL | ESCROW + byte | in_escrow |10s max|
+| | | |POLL | ESCROW + byte | in_escrow |10s max|
+|POLL|in_escrow |ESCROW_POSITION + bits |||in_escrow||
+|**STACK**|in_escrow  ||||||
+|| | | **STACK_1** | ACK | in_stack| |
+||| ACK ||| |CCNET ack after downstream ACK|
+|| | | POLL | STACKING | stacking | |
+| POLL|in_stack/ stacking| STACKING|  |  |  | |
+|| | | POLL | VEND_VALID + byte|**stacking**| automate action to send ACK if state == STACKED and right denom byte | 
+|| | |**ACK**|no resp|stacking||
+|| | | POLL | STACKED |stacked  | |
+| POLL|stacked| STACKED + bits|  |  |idle  | |
+|| | | POLL | ENABLE(IDLING) |  | |
 
 
 # ID003 ESCROW Flows
