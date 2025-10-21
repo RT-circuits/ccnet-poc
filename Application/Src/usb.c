@@ -15,6 +15,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "usb.h"
 #include "usbd_cdc_if.h"
+#include <stdio.h>  /* For snprintf */
+#include "utils.h"  /* For utils_memcpy */
 
 /* USB constants */
 #define USBD_OK 0
@@ -162,10 +164,7 @@ uint8_t USB_GetInputLine(char* buffer, uint8_t max_length)
         uint8_t copy_length = (usb_input_pos < max_length - 1) ? usb_input_pos : max_length - 1;
         
         // Copy input line to user buffer
-        for (uint8_t i = 0; i < copy_length; i++)
-        {
-            buffer[i] = usb_input_buffer[i];
-        }
+        utils_memcpy((uint8_t*)buffer, (uint8_t*)usb_input_buffer, copy_length);
         buffer[copy_length] = '\0';
         
         // Clear the input ready flag and reset position
@@ -188,33 +187,12 @@ void USB_ProcessStatusMessage(void)
     uint32_t current_time = HAL_GetTick();
     if (current_time - last_usb_status_message_time >= 2000)
     {
-        USB_TransmitString("USB running - Time: ");
-        
-        // Simple integer to string conversion
         uint32_t seconds = current_time / 1000;
-        char time_str[16];
-        uint8_t pos = 0;
+        char status_msg[32];
         
-        if (seconds == 0) {
-            time_str[pos++] = '0';
-        } else {
-            uint32_t temp = seconds;
-            uint8_t digits = 0;
-            while (temp > 0) {
-                temp /= 10;
-                digits++;
-            }
-            temp = seconds;
-            for (uint8_t i = 0; i < digits; i++) {
-                time_str[digits - 1 - i] = '0' + (temp % 10);
-                temp /= 10;
-            }
-            pos = digits;
-        }
-        time_str[pos] = '\0';
+        snprintf(status_msg, sizeof(status_msg), "USB running - Time: %lus\r\n", (unsigned long)seconds);
+        USB_TransmitString(status_msg);
         
-        USB_TransmitString(time_str);
-        USB_TransmitString("s\r\n");
         last_usb_status_message_time = current_time;
     }
 }

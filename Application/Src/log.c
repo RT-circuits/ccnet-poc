@@ -16,6 +16,7 @@
 #include "log.h"
 #include "usb.h"
 #include "proto.h"
+#include <stdio.h>  /* For snprintf */
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -154,23 +155,19 @@ void LOG_Proto(const message_t* msg)
         const char* opcode_ascii = MESSAGE_GetOpcodeASCII(msg);
         USB_TransmitString(opcode_ascii);
         
-        // Pad to 40 characters for alignment
+        // Pad to 40 characters for alignment using snprintf
         uint8_t name_len = 0;
         while (opcode_ascii[name_len] != '\0') name_len++;
-        for (uint8_t i = name_len; i < 40; i++)
-        {
-            USB_TransmitString(" ");
-        }
+        char pad_buffer[41];  // 40 spaces + null terminator
+        snprintf(pad_buffer, sizeof(pad_buffer), "%*s", 40 - name_len, "");
+        USB_TransmitString(pad_buffer);
         
-        // Print raw bytes as hex
-        char hex_chars[] = "0123456789ABCDEF";
+        // Print raw bytes as hex using snprintf
+        char hex_buffer[4];  // "XX " + null terminator
         for (uint8_t i = 0; i < msg->length; i++)
         {
-            uint8_t high_nibble = (msg->raw[i] >> 4) & 0x0F;
-            uint8_t low_nibble = msg->raw[i] & 0x0F;
-            char hex_buffer[3] = {hex_chars[high_nibble], hex_chars[low_nibble], 0};
+            snprintf(hex_buffer, sizeof(hex_buffer), "%02X ", msg->raw[i]);
             USB_TransmitString(hex_buffer);
-            USB_TransmitString(" ");
         }
         USB_TransmitString("\r\n");
         log_counter++;

@@ -19,6 +19,7 @@
 #include "led.h"
 #include "nvm.h"
 #include "table-ui.h"
+#include <stdio.h>  /* For snprintf */
 
 /* External LED handle */
 extern LED_HandleTypeDef hled3;
@@ -249,6 +250,8 @@ void CONFIG_ShowMenu(void)
   */
 static void CONFIG_ShowConfiguration(void)
 {
+    char config_line[128];
+    
     USB_TransmitString("\r\n=== CONFIGURATION ====================================\r\n");
     USB_TransmitString("1.  Upstream Protocol        : CCNET - fixed\r\n");
     
@@ -282,21 +285,22 @@ static void CONFIG_ShowConfiguration(void)
     
     USB_TransmitString("8.  Show Bill Table\r\n");
     
-    USB_TransmitString("9.  USB Logging              : ");
-    USB_TransmitString(g_config.usb_logging_enabled ? "Enabled" : "Disabled");
-    USB_TransmitString("\r\n");
+    snprintf(config_line, sizeof(config_line), "9.  USB Logging              : %s\r\n", 
+             g_config.usb_logging_enabled ? "Enabled" : "Disabled");
+    USB_TransmitString(config_line);
     
-    USB_TransmitString("10. Log Level                : ");
+    const char* log_level_str;
     switch (g_config.log_level)
     {
-        case LOG_LEVEL_ERROR: USB_TransmitString("ERROR"); break;
-        case LOG_LEVEL_WARN:  USB_TransmitString("WARN"); break;
-        case LOG_LEVEL_PROTO: USB_TransmitString("PROTO"); break;
-        case LOG_LEVEL_INFO:  USB_TransmitString("INFO"); break;
-        case LOG_LEVEL_DEBUG: USB_TransmitString("DEBUG"); break;
-        default:              USB_TransmitString("INFO"); break;
+        case LOG_LEVEL_ERROR: log_level_str = "ERROR"; break;
+        case LOG_LEVEL_WARN:  log_level_str = "WARN"; break;
+        case LOG_LEVEL_PROTO: log_level_str = "PROTO"; break;
+        case LOG_LEVEL_INFO:  log_level_str = "INFO"; break;
+        case LOG_LEVEL_DEBUG: log_level_str = "DEBUG"; break;
+        default:              log_level_str = "INFO"; break;
     }
-    USB_TransmitString("\r\n");
+    snprintf(config_line, sizeof(config_line), "10. Log Level                : %s\r\n", log_level_str);
+    USB_TransmitString(config_line);
     USB_TransmitString("======================================================\r\n\r\n");
 }
 
