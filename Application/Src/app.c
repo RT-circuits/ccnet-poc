@@ -22,6 +22,7 @@
 #include "usb.h"
 #include "log.h"
 #include "config.h"
+#include "config-ui.h"
 #include "table-ui.h"
 #include "btn.h"
 #include "nvm.h"
@@ -219,6 +220,9 @@ void APP_Init(void)
     
     /* Initialize Configuration module */
     CONFIG_Init();
+
+    /* Display current settings */
+    CONFIGUI_ShowConfiguration();
     
     /* Initialize Button module */
     BTN_Init();
@@ -250,7 +254,7 @@ void APP_Process(void)
     if (BTN_IsConfigMenuActive())
     {
         /* Process configuration menu */
-        CONFIG_ProcessMenu();
+        CONFIGUI_ProcessMenu();
         return; /* Exit early - don't process USB status messages */
     }
     

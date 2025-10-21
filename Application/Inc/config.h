@@ -63,6 +63,7 @@ extern config_settings_t g_config;
 void CONFIG_Init(void);
 void CONFIG_LoadFromNVM(void);
 void CONFIG_SaveToNVM(void);
+void CONFIG_ShowConfiguration(void);
 void CONFIG_ShowMenu(void);
 void CONFIG_ProcessMenu(void);
 

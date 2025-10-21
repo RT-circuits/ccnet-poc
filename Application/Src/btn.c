@@ -15,9 +15,15 @@
 /* Includes ------------------------------------------------------------------*/
 #include "btn.h"
 #include "led.h"
-#include "config.h"
+#include "config-ui.h"
 #include "app.h"
 #include "usb.h"
+
+/* Button handling constants */
+#define RESET_BUTTON_PIN GPIO_PIN_8
+#define RESET_BUTTON_PORT GPIOB
+#define RESET_LONG_PRESS_MS 2000
+#define RESET_LED_FLASH_MS 200
 
 /* Private variables ---------------------------------------------------------*/
 static config_reset_button_t cr_button = {0};
@@ -51,10 +57,10 @@ void BTN_Init(void)
 void BTN_ConfigResetButtonInterrupt(void)
 {
     // Clear the interrupt flag first
-    __HAL_GPIO_EXTI_CLEAR_IT(CONFIG_RESET_BUTTON_PIN);
+    __HAL_GPIO_EXTI_CLEAR_IT(RESET_BUTTON_PIN);
     
     // Check current button state
-    if (HAL_GPIO_ReadPin(CONFIG_RESET_BUTTON_PORT, CONFIG_RESET_BUTTON_PIN) == GPIO_PIN_SET)
+    if (HAL_GPIO_ReadPin(RESET_BUTTON_PORT, RESET_BUTTON_PIN) == GPIO_PIN_SET)
     {
         // Rising edge - button pressed
         cr_button.press_detected = 1;
@@ -95,17 +101,17 @@ void BTN_ProcessConfigResetButton(void)
         if (!cr_button.long_press_detected)
         {
             // Short press - flash LED1 (config menu indicator)
-            LED_Flash(&hled1, CONFIG_RESET_LED_FLASH_MS);
+            LED_Flash(&hled1, RESET_LED_FLASH_MS);
             
             
             // Start config menu
-            CONFIG_ShowMenu();
+            CONFIGUI_ShowMenu();
             config_menu_active = 1;
         }
         else
         {
             // Long press - flash LED2 (reset indicator)
-            LED_Flash(&hled2, CONFIG_RESET_LED_FLASH_MS);
+            LED_Flash(&hled2, RESET_LED_FLASH_MS);
             
             // Restart MCU
             USB_TransmitString("\r\n=== LONG PRESS DETECTED - RESTARTING MCU ===\r\n");
@@ -120,11 +126,11 @@ void BTN_ProcessConfigResetButton(void)
     if (cr_button.press_detected)
     {
         // Check if button is still pressed by reading GPIO
-        if (HAL_GPIO_ReadPin(CONFIG_RESET_BUTTON_PORT, CONFIG_RESET_BUTTON_PIN) == GPIO_PIN_SET)
+        if (HAL_GPIO_ReadPin(RESET_BUTTON_PORT, RESET_BUTTON_PIN) == GPIO_PIN_SET)
         {
             // Button still pressed - check for long press threshold
             uint32_t press_duration = HAL_GetTick() - cr_button.press_start_time;
-            if (press_duration >= CONFIG_RESET_LONG_PRESS_MS && !cr_button.long_press_detected)
+            if (press_duration >= RESET_LONG_PRESS_MS && !cr_button.long_press_detected)
             {
                 cr_button.long_press_detected = 1;
                 // Turn off LED3 to indicate long press detected

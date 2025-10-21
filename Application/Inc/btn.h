@@ -35,12 +35,6 @@ typedef struct {
 
 /* Exported constants --------------------------------------------------------*/
 
-/* Button handling constants */
-#define CONFIG_RESET_BUTTON_PIN GPIO_PIN_8
-#define CONFIG_RESET_BUTTON_PORT GPIOB
-#define CONFIG_RESET_LONG_PRESS_MS 2000
-#define CONFIG_RESET_LED_FLASH_MS 200
-
 /* Exported macro ------------------------------------------------------------*/
 
 /* Exported variables --------------------------------------------------------*/
