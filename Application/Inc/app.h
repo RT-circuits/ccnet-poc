@@ -99,7 +99,7 @@ typedef struct
     int8_t length_offset;           /* Length field offset (0 for CCNET/ID003, -5 for CCTALK) */
     uint8_t crc_length;             /* Number of CRC bytes */
     uint32_t inter_byte_timeout_ms; /* Inter-byte timeout in milliseconds */
-    uint8_t cctalk_echo_bytes; /* Number of ccTalk echo bytes to ignore */
+    uint8_t cctalk_echo_byte_count; /* Number of ccTalk echo bytes to ignore */
 } datalink_config_t;
 
 

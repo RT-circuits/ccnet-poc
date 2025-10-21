@@ -183,12 +183,13 @@ static void CONFIG_SetPhy(interface_config_t* interface)
               interface->datalink.inter_byte_timeout_ms = 5;
               break;
           case PROTO_CCTALK:
-              interface->datalink.sync_length = 0;
-              interface->datalink.sync_byte1 = 0x00;
+              interface->datalink.sync_length = 1;
+              interface->datalink.sync_byte1 = 0x50;
               interface->datalink.sync_byte2 = 0x00;
-              interface->datalink.length_offset = -5;
+              interface->datalink.length_offset = 5;
               interface->datalink.crc_length = 1;
               interface->datalink.inter_byte_timeout_ms = 5;
+              interface->datalink.cctalk_echo_byte_count = 0;
               break;
           default:
               LOG_Error("Unknown protocol");

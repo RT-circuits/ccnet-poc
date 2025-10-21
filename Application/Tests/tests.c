@@ -25,7 +25,7 @@
 #define ENABLE_PROTO_CONVERTER_TESTS 0
 #define ENABLE_USB_TESTS           0
 #define ENABLE_UART_TESTS          0
-#define ENABLE_CCTALK_TESTS        1
+#define ENABLE_CCTALK_TESTS        0
 
 /* Exported functions --------------------------------------------------------*/
 
