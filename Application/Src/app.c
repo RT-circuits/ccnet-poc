@@ -78,8 +78,8 @@ typedef enum {
 } startup_state_t;
 
 typedef enum {
-    DS_NO_RESPONSE = 0,
-    DS_OK,
+    DS_NOT_CONNECTED = 0,
+    DS_CONNECTED,
 } downstream_state_t;
 
 typedef enum {
@@ -105,7 +105,7 @@ downstream_context_t ds_context = {
     .poller.last_msg = {0, 0, 0, NULL, 0},
     .poller.last_opcode = 0,
     .startup = DS_NOT_STARTED,
-    .state = DS_NO_RESPONSE,
+    .state = DS_NOT_CONNECTED,
     .last_req_time = 0,
     .escrow_state = ESCROW_IDLE,
 
@@ -269,10 +269,10 @@ void APP_Process(void)
     if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
     {
         /* Update state on first message */
-        if (ds_context.state == DS_NO_RESPONSE)
+        if (ds_context.state == DS_NOT_CONNECTED)
         {
-            LOG_Debug("Downstream first message received");
-            ds_context.state = DS_OK;
+            LOG_Debug("Downstream validator connected");
+            ds_context.state = DS_CONNECTED;
         }
         
         /* message received */
@@ -282,28 +282,9 @@ void APP_Process(void)
                 LOG_Debug("Downstream message received OK");
                 LOG_Proto(&downstream_msg);
 
-                switch(downstream_msg.opcode)
-                {
-                    case ID003_STATUS_ESCROW:
-                        ds_context.escrow_state = ESCROW_IN_ESCROW;
-                        uint8_t id003_denom_nr = downstream_msg.data[0];
-                        ds_context.escrow_bill_type_nr = id003_denom_nr - g_bill_table.denoms[0].id003_denom_nr;
-                        
-
-
-
-
-
-
-                        break;
-                }
-                // TODO: process downstream message
-
                 if (PROTO_IsId003StatusCode(downstream_msg.opcode))
                 {
                     LOG_Debug("Downstream ID003 status code parsed to upstream msg object");
-                
-                    
                 }
                 else
                 {
@@ -359,6 +340,8 @@ void APP_Process(void)
                             RESPOND(CCNET_STATUS_ACK, NULL, 0);
                             /* reset MCU */
                             LOG_Warn("Resetting MCU");
+                            USB_Flush();
+                            HAL_Delay(100);
                             APP_MCUReset();
                             
                         }
@@ -417,58 +400,117 @@ void APP_Process(void)
                         break;
 
                     case CCNET_POLL:                   /* 0x33 - Poll */
-                        /* check if downstream message has been received or polling is disabled */
-                        if (ds_context.state != DS_NO_RESPONSE || if_downstream.datalink.polling_period_ms == 0)
                         {
-                            /* If polling is disabled, manually request status */
-                            if (if_downstream.datalink.polling_period_ms == 0)
+                            /* Determine if we should poll downstream validator */
+                            uint8_t synchronous_polling = (if_downstream.datalink.polling_period_ms == 0);
+                            uint8_t asynchronous_polling = !synchronous_polling;
+                            uint8_t downstream_not_connected = (ds_context.state != DS_NOT_CONNECTED);
+
+                            /* Respond to CCNET_POLL if:
+                            * - Device is connected so a status is known, OR
+                            * - Polling is synchronous and we do not want to block the first downstream poll 
+                            * if not connected, just let CCNET POLL timeout
+                            */
+                            if (downstream_not_connected && asynchronous_polling)
                             {
-                                REQUEST(ID003_STATUS_REQ, NULL, 0);
-                                APP_WaitForDownstreamMessage(20);
-                                switch(downstream_msg.opcode)
+                                LOG_Warn("No bill validator connected. CCNET POLL timeout");
+                            }
+                            else
+                            {
+                                /* manually request status each time */
+                                if (synchronous_polling)
                                 {
-                                    case ID003_STATUS_ESCROW:
-                                        ds_context.escrow_state = ESCROW_IN_ESCROW;
-                                        uint8_t id003_denom_nr = downstream_msg.data[0];
-                                        ds_context.escrow_bill_type_nr = id003_denom_nr - g_bill_table.denoms[0].id003_denom_nr;
-                                        break;
-                                }
-                                            }
-                            
-                            switch(ds_context.escrow_state)
-                            {
-                                case ESCROW_IDLE:
-                                    /* no escrow in progress*/
-                                    /* Check if downstream message is fresh and valid */
-                                    if (downstream_msg.length > 0 && APP_GetDownstreamMessageAge() < DOWNSTREAM_MSG_TTL_MS)
+                                    REQUEST(ID003_STATUS_REQ, NULL, 0);
+                                    if (APP_WaitForDownstreamMessage(20)==0)
                                     {
-                                        /* handle all non escrow related messages. Status, Rejection, Failures */
-                                        PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+                                        LOG_Warn("No bill validator connected. CCNET POLL timeout");
+                                        break;
+                                    }
+                                }
+                            }
+                            /* Check if downstream message is fresh and valid */
+                            if (!(downstream_msg.length > 0 && APP_GetDownstreamMessageAge() < DOWNSTREAM_MSG_TTL_MS))
+                            {
+                                LOG_Warn("Downstream status is not recent and valid. CCNET POLL timeout");
+                                break;
+                            }
+                            
+                            PROTO_MapStatusCode(&downstream_msg, &new_us_msg);   /* updates opcode and data */
+    
+                            switch(ds_context.escrow_state)
+                            {                                
+                                case ESCROW_IDLE:
+                                    /* handle all non escrow related messages. Status, Rejection, Failures. But also detect if getting into escrow */
+                                    if (downstream_msg.opcode != ID003_STATUS_ESCROW)
+                                    {
                                         CREATE_RESP(new_us_msg);
                                         RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.data_length);
                                     }
-                                    else __NOP(); /* just let CCNET POLL timeout*/
+                                    else
+                                    {
+                                        ds_context.escrow_state = ESCROW_IN_ESCROW;
+                                        uint8_t id003_denom_nr = downstream_msg.data[0];
+                                        ds_context.escrow_bill_type_nr = id003_denom_nr - g_bill_table.denoms[0].id003_denom_nr;
+                                        RESPOND(CCNET_STATUS_ESCROW_POSITION, &ds_context.escrow_bill_type_nr, 1);
+                                    }
                                     break;
+
+
                                 case ESCROW_IN_ESCROW:
-                                    /* escrow in progress*/
-                                    RESPOND(CCNET_STATUS_ESCROW_POSITION, &ds_context.escrow_bill_type_nr, 1);
+                                    /* make sure it is still in escrow*/
+                                    if (downstream_msg.opcode != ID003_STATUS_ESCROW)
+                                    {
+                                        /* handle returning, rejection, failure, etc. as normal cases*/
+                                        CREATE_RESP(new_us_msg);
+                                        RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.data_length);
+                                        ds_context.escrow_state = ESCROW_IDLE;
+                                    }
+                                    else
+                                    {
+                                        RESPOND(CCNET_STATUS_ESCROW_POSITION, &ds_context.escrow_bill_type_nr, 1);
+                                    }
                                     break;
                                 case ESCROW_IN_STACK:
-                                    /* escrow in stack*/
+                                    RESPOND(CCNET_STATUS_STACKING, NULL, 0);
+                                    ds_context.escrow_state = ESCROW_STACKING;
                                     break;
                                 case ESCROW_STACKING:
-                                    /* escrow stacking*/
+                                    /* if downstream status is still stacking */
+                                    if (downstream_msg.opcode == ID003_STATUS_STACKING)
+                                    {
+                                        RESPOND(CCNET_STATUS_STACKING, NULL, 0);
+                                    }
+                                    /* critical path. Automate sending the ACK. But only in synchronous mode. This SHALL not work asynchronously*/
+                                    if (downstream_msg.opcode == ID003_STATUS_VEND_VALID)
+                                    {
+                                        RESPOND(CCNET_STATUS_STACKING, NULL, 0);
+                                        REQUEST(ID003_ACK_TO_VEND_VALID, NULL, 0); /* no response expected*/
+                                        WAIT_FOR_DS_MSG(20, 0, 0);
+                                        /* there will be no response to ACK_TO_VEND_VALID */                                        
+                                    }
+                                    if (downstream_msg.opcode == ID003_STATUS_STACKED || downstream_msg.opcode == ID003_STATUS_IDLING)
+                                    {
+
+                                        RESPOND(CCNET_STATUS_BILL_STACKED, &ds_context.escrow_bill_type_nr, 1);
+                                        ds_context.escrow_state = ESCROW_STACKED;
+                                    }
                                     break;
                                 case ESCROW_STACKED:
-                                    /* escrow stacked*/
+                                    /* no further action needed*/
+                                    if (downstream_msg.opcode != ID003_STATUS_ESCROW)
+                                    {
+                                        CREATE_RESP(new_us_msg);
+                                        RESPOND(new_us_msg.opcode, new_us_msg.data, new_us_msg.data_length);
+                                    }
+                                    else
+                                    {
+                                        RESPOND(CCNET_NAK, NULL, 0);
+                                    }
+                                    ds_context.escrow_state = ESCROW_IDLE;
                                     break;
-                            }
+                            } /* end switch */
                         }
-                        else
-                        {
-                            LOG_Warn("No bill validator connected");
-                        }
-                        break;
+                        break; 
 
                     case CCNET_ENABLE_BILL_TYPES:      /* 0x34 - Enable Bill Types */
                         {
@@ -536,11 +578,29 @@ void APP_Process(void)
                         break;
 
                     case CCNET_STACK:                  /* 0x35 - Stack */
-                        LOG_Warn("CCNET_STACK not implemented");
+                        REQUEST(ID003_STACK_1, NULL, 0);
+                        if(WAIT_FOR_DS_MSG(20, ID003_STATUS_ACK, 0)) /* STACK_1 returns ACK... */
+                        {
+                            if (downstream_msg.opcode == ID003_STATUS_ACK)
+                            {
+                                RESPOND(CCNET_ACK, NULL, 0);
+                                ds_context.escrow_state = ESCROW_IN_STACK;
+                            }
+                            else
+                            {
+                                RESPOND(CCNET_NAK, NULL, 0);
+                                ds_context.escrow_state = ESCROW_IDLE;
+                            }
+                        }
+                        else
+                        {
+                            RESPOND(CCNET_NAK, NULL, 0);
+                            ds_context.escrow_state = ESCROW_IDLE;
+                        }
                         break;
 
                     case CCNET_RETURN:                 /* 0x36 - Return */
-                        LOG_Warn("CCNET_RETURN not implemented");
+                        REQUEST(ID003_RETURN, NULL, 0);
                         break;
 
                     case CCNET_IDENTIFICATION:         /* 0x37 - Identification */

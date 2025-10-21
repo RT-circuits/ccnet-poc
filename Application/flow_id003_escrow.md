@@ -74,15 +74,15 @@
 |------------------|--------------|-------|
 | POLL | IDLING | idle |
 | POLL | ACCEPTING | accepting |
-| POLL | ESCROW_POSITION + denom | escrow |
+| POLL | ESCROW_POSITION + bill nr | escrow |
 | STACK | ACK | stacking |
 | POLL | STACKING | stacking |
-| POLL | BILL_STACKED + denom | complete |
+| POLL | BILL_STACKED + bill nr | complete |
 | POLL | IDLING | idle |
 
 ## Combined ID003/CCNET Escrow Happy Flow
 
-| Controller |escrow state |Proxy Resp | Proxy Req | Validator Response | escrow_state | Notes |
+| Controller |escrow state - a priori |Proxy Resp | Proxy Req | Validator Response | escrow_state - a posteriori| Notes |
 |------------|---|---------|-----------|-------------------|--------------|---|
 ||| | POLL | ENABLE(IDLING) | idle | |
 || | | POLL | ACCEPTING |  | remains idle|
@@ -90,16 +90,16 @@
 | | | |POLL | ACCEPTING | | |
 | | | |POLL | ESCROW + byte | in_escrow |10s max|
 | | | |POLL | ESCROW + byte | in_escrow |10s max|
-|POLL|in_escrow |ESCROW_POSITION + bits |||in_escrow||
+|POLL|in_escrow |ESCROW_POSITION + bill nr |||in_escrow||
 |**STACK**|in_escrow  ||||||
 || | | **STACK_1** | ACK | in_stack| |
 ||| ACK ||| |CCNET ack after downstream ACK|
-|| | | POLL | STACKING | stacking | |
+|POLL|in_stack |STACKING | POLL | STACKING | stacking | |
 | POLL|in_stack/ stacking| STACKING|  |  |  | |
 || | | POLL | VEND_VALID + byte|**stacking**| automate action to send ACK if state == STACKED and right denom byte | 
 || | |**ACK**|no resp|stacking||
 || | | POLL | STACKED |stacked  | |
-| POLL|stacked| STACKED + bits|  |  |idle  | |
+| POLL|stacked| STACKED + bill nr|  |  |idle  | |
 || | | POLL | ENABLE(IDLING) |  | |
 
 

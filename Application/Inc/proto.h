@@ -47,6 +47,7 @@ typedef struct message_t message_t;
 #define ID003_RETURN               0x43
 #define ID003_HOLD                 0x44
 #define ID003_WAIT                 0x45
+#define ID003_ACK_TO_VEND_VALID    0x50
 
 /* ID003 Setting Commands */
 #define ID003_ENABLE               0xC0

@@ -366,6 +366,7 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 case 0x43: return "ID003_RETURN";
                 case 0x44: return "ID003_HOLD";
                 case 0x45: return "ID003_WAIT";
+                case 0x50: return "CCNET_ACK_TO_VEND_VALID";
                 case 0xC0: return "ID003_ENABLE";
                 case 0xC1: return "ID003_SECURITY";
                 case 0xC2: return "ID003_COMM_MODE";
@@ -382,7 +383,7 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
                 case 0x89: return "ID003_BOOT_VERSION_REQ";
                 case 0x8A: return "ID003_CURRENCY_ASSIGN_REQ";
                 case 0x91: return "ID003_SERIAL_NUMBER_REQ";
-                default: return "ID003_TX_UNKNOWN";
+                default: return "";
             }
         }
         else

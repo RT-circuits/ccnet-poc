@@ -164,6 +164,7 @@ uint8_t PROTO_MapStatusCode(message_t* ds_msg, message_t* us_msg)
                 {
                     case ID003_STATUS_ESCROW:
                         us_status = CCNET_STATUS_ESCROW_POSITION;
+                        /* handle escrow state in main loop*/
                         break;
                     case ID003_STATUS_REJECTING:
                         us_status = CCNET_STATUS_REJECTING;

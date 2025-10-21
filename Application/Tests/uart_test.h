@@ -34,9 +34,7 @@ extern UART_HandleTypeDef huart3;
 
 /* Exported functions prototypes ---------------------------------------------*/
 void UART_RunAllTests(void);
-void UART_TEST_A_BasicTx(void);
-void UART_TEST_B_ListenUpstream(void);
-void UART_TEST_CCNET_MessageReception(void);
+void UART_TEST_E(void);
 
 #ifdef __cplusplus
 }

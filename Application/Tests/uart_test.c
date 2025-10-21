@@ -14,10 +14,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "uart_test.h"
 #include "app.h"
+#include "stm32g4xx_hal.h"
 #include "stm32g4xx_hal_uart.h"
 #include "uart.h"
 #include "log.h"
 #include "message.h"
+#include "usb.h"
 
 /* Private variables ---------------------------------------------------------*/
 static uint8_t uart2_sequence = 0; // 0=first, 1=second, 2=third (infinite)
@@ -26,6 +28,8 @@ static message_t test_receive_message;
 
 /* Private functions --------------------------------------------------------*/
 void UART_TEST_A_BasicTx2(void);
+void UART_TEST_B_ListenUpstream(void);
+void UART_TEST_C_BlockRx(void);
 void UART_TEST_D_CCNET_MessageReception(void);
 
 /**
@@ -176,3 +180,22 @@ void UART_TEST_D_CCNET_MessageReception(void)
     }
 }
 
+void UART_TEST_E(void)
+{
+	/* structure: dest addr, data length, src addr, header (cmd), checksum
+	 * dest 0: broadcase
+	 * data length: 0 for simple poll. Total length = data length + 5
+	 * src 1: default
+	 * cmd: 254 for simple poll
+	 * checksum: total sum mod 256 is 0
+	 */
+//	  uint8_t tx_buffer[6] = {0,0,1,254,0x29, 0x07};
+	  uint8_t tx_buffer[] = {80,0,1,254,177};
+
+  while(1){
+	LOG_Debug("Sending simple poll");
+	USB_Flush();
+    HAL_UART_Transmit(&huart3, (uint8_t*) tx_buffer, sizeof(tx_buffer), 100);
+    HAL_Delay(100);
+  }
+}
