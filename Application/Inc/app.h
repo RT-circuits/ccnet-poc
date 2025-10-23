@@ -99,6 +99,8 @@ typedef struct
     int8_t length_offset;           /* Length field offset (0 for CCNET/ID003, -5 for CCTALK) */
     uint8_t crc_length;             /* Number of CRC bytes */
     uint32_t inter_byte_timeout_ms; /* Inter-byte timeout in milliseconds */
+    uint8_t cctalk_source_address;  /* Source address for ccTalk. Use 0 for broadcast */
+    uint8_t cctalk_dest_address;    /* Destination address for ccTalk 1 is default */
     uint8_t cctalk_echo_byte_count; /* Number of ccTalk echo bytes to ignore */
 } datalink_config_t;
 

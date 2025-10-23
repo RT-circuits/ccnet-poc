@@ -41,6 +41,7 @@ static void UpdateUpstreamProtocol(void);
 static void UpdateUpstreamBaudrate(void);
 static void UpdateUpstreamParity(void);
 static void UpdateDownstreamProtocol(void);
+static void UpdateCCTalkAddresses(void);
 static void UpdateDownstreamBaudrate(void);
 static void UpdateDownstreamParity(void);
 static void UpdateDownstreamPolling(void);
@@ -60,10 +61,10 @@ void CONFIGUI_ShowMenu(void)
     CONFIGUI_ShowConfiguration();
     HAL_Delay(100); /* 100ms delay to ensure the configuration is displayed */
     
-    USB_TransmitString("11. Exit and Restart\r\n");
-    USB_TransmitString("12. Save, Exit and Restart\r\n");
+    USB_TransmitString("12. Exit and Restart\r\n");
+    USB_TransmitString("13. Save, Exit and Restart\r\n");
     USB_TransmitString("======================================================\r\n");
-    DisplayEnterChoice(12);
+    DisplayEnterChoice(13);
     HAL_Delay(100);
     USB_Flush();
 }
@@ -91,15 +92,21 @@ void CONFIGUI_ShowConfiguration(void)
     DisplayProtocol(g_config.downstream->protocol);
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("5.  Downstream Baudrate      : ");
+    USB_TransmitString("5.  ccTalk Addresses         : ");
+    snprintf(config_line, sizeof(config_line), "%d, %d\r\n", 
+             g_config.downstream->datalink.cctalk_dest_address,
+             g_config.downstream->datalink.cctalk_source_address);
+    USB_TransmitString(config_line);
+    
+    USB_TransmitString("6.  Downstream Baudrate      : ");
     DisplayBaudrate(g_config.downstream->phy.baudrate);
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("6.  Downstream Parity        : ");
+    USB_TransmitString("7.  Downstream Parity        : ");
     DisplayParity(g_config.downstream->phy.parity);
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("7.  Downstream Polling       : ");
+    USB_TransmitString("8.  Downstream Polling       : ");
     USB_TransmitString(g_config.downstream->datalink.polling_period_ms == 0 ? "Disabled  (synchronous)" :
                        g_config.downstream->datalink.polling_period_ms == 100 ? "100ms (asynchronous)" : 
                        g_config.downstream->datalink.polling_period_ms == 200 ? "200ms (asynchronous)" : 
@@ -107,9 +114,9 @@ void CONFIGUI_ShowConfiguration(void)
                        g_config.downstream->datalink.polling_period_ms == 1000 ? "1000ms (asynchronous)" : "Custom");
     USB_TransmitString("\r\n");
     
-    USB_TransmitString("8.  Show Bill Table\r\n");
+    USB_TransmitString("9.  Show Bill Table\r\n");
     
-    snprintf(config_line, sizeof(config_line), "9.  USB Logging              : %s\r\n", 
+    snprintf(config_line, sizeof(config_line), "10. USB Logging              : %s\r\n", 
              g_config.usb_logging_enabled ? "Enabled" : "Disabled");
     USB_TransmitString(config_line);
     
@@ -123,7 +130,7 @@ void CONFIGUI_ShowConfiguration(void)
         case LOG_LEVEL_DEBUG: log_level_str = "DEBUG"; break;
         default:              log_level_str = "INFO"; break;
     }
-    snprintf(config_line, sizeof(config_line), "10. Log Level                : %s\r\n", log_level_str);
+    snprintf(config_line, sizeof(config_line), "11. Log Level                : %s\r\n", log_level_str);
     USB_TransmitString(config_line);
     USB_TransmitString("======================================================\r\n\r\n");
 }
@@ -144,7 +151,7 @@ void CONFIGUI_ProcessMenu(void)
         if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
         {
             // Parse the choice
-            uint8_t choice = ParseChoice(input_buffer, 1, 12);
+            uint8_t choice = ParseChoice(input_buffer, 1, 13);
             
             // Process the choice
             if (choice > 0)
@@ -162,6 +169,9 @@ void CONFIGUI_ProcessMenu(void)
                         break;
                     case CONFIGUI_MENU_DOWNSTREAM_PROTOCOL:
                         UpdateDownstreamProtocol();
+                        break;
+                    case CONFIGUI_MENU_CCTALK_ADDRESSES:
+                        UpdateCCTalkAddresses();
                         break;
                     case CONFIGUI_MENU_DOWNSTREAM_BAUDRATE:
                         UpdateDownstreamBaudrate();
@@ -198,7 +208,7 @@ void CONFIGUI_ProcessMenu(void)
             }
             else
             {
-                USB_TransmitString("Invalid choice! Please enter a number between 1 and 12: ");
+                USB_TransmitString("Invalid choice! Please enter a number between 1 and 13: ");
             }
         }
     }
@@ -413,6 +423,56 @@ static void UpdateDownstreamProtocol(void)
     {
         USB_TransmitString("No input received. Using default (ID003).\r\n");
         g_config.downstream->protocol = PROTO_ID003;
+    }
+}
+
+/**
+  * @brief  Update ccTalk addresses
+  * @retval None
+  */
+static void UpdateCCTalkAddresses(void)
+{
+    USB_TransmitString("\r\nccTalk Address Configuration:\r\n");
+    
+    // Prompt for destination address first
+    USB_TransmitString("Enter destination address (0-255, 0 for broadcast): ");
+    if (WaitForInput())
+    {
+        char input_buffer[16];
+        if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
+        {
+            uint8_t dest_addr = ParseChoice(input_buffer, 0, 255);
+            g_config.downstream->datalink.cctalk_dest_address = dest_addr;
+            USB_TransmitString("Destination address updated.\r\n");
+        }
+        else
+        {
+            USB_TransmitString("No input received. Using default (0).\r\n");
+            g_config.downstream->datalink.cctalk_dest_address = 0;
+        }
+    }
+    
+    // Prompt for source address next
+    USB_TransmitString("Enter source address (1-255): ");
+    if (WaitForInput())
+    {
+        char input_buffer[16];
+        if (USB_GetInputLine(input_buffer, sizeof(input_buffer)) > 0)
+        {
+            uint8_t source_addr = ParseChoice(input_buffer, 0, 255);
+            if (source_addr == 0)
+            {
+                source_addr = 1;  // Convert 0 to 1
+                USB_TransmitString("Invalid address! Using default (1).\r\n");
+            }
+            g_config.downstream->datalink.cctalk_source_address = source_addr;
+            USB_TransmitString("Source address updated.\r\n");
+        }
+        else
+        {
+            USB_TransmitString("No input received. Using default (1).\r\n");
+            g_config.downstream->datalink.cctalk_source_address = 1;
+        }
     }
 }
 
@@ -846,6 +906,8 @@ static void DisplayParity(uint32_t parity)
   */
 static uint8_t WaitForInput(void)
 {
+    USB_Flush();
+    HAL_Delay(10);
     while (1)
     {
         if (USB_IsInputReady())
