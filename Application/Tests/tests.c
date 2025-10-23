@@ -27,7 +27,7 @@
 #define ENABLE_USB_TESTS           0
 #define ENABLE_UART_TESTS          0
 #define ENABLE_CCTALK_TESTS        0
-#define ENABLE_MESSAGE_TESTS       0
+#define ENABLE_MESSAGE_TESTS       1
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -63,7 +63,7 @@ void TESTS_RunAll(void)
 #endif
 
 #if ENABLE_MESSAGE_TESTS
-    /* Run message creation test */
+    /* create msg and transmit it */
     MSG_TEST_CreateCCTalkMessage();
 #endif
 }

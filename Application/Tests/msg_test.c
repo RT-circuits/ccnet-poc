@@ -9,11 +9,15 @@
 #include "msg_test.h"
 #include "message.h"
 #include "uart.h"
-
+#include "log.h"
+#include "usb.h"
 /* Exported functions --------------------------------------------------------*/
 
 void MSG_TEST_CreateCCTalkMessage(void)
+
 {
+  LOG_Info("Creating CCTalk message and transmitting it");
+  USB_Flush();
     message_t msg;
     
     // Create message with opcode 254, no data

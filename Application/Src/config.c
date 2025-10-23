@@ -97,9 +97,7 @@ void CONFIG_LoadFromNVM(void)
             
             /* Log the sequence number */
             uint32_t sequence = NVM_GetCurrentSequenceNumber();
-            char sequence_msg[40];
-            utils_string_uint32_concat("Flash storage sequence: ", sequence, sequence_msg, sizeof(sequence_msg));
-            LOG_Info(sequence_msg);
+            LOG_InfoUint("Flash storage sequence: ", sequence);
         }
     }
     else

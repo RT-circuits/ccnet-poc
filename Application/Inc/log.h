@@ -51,6 +51,7 @@ void LOG_Error(const char* message);
 void LOG_Warn(const char* message);
 void LOG_Proto(const message_t* msg);
 void LOG_Info(const char* message);
+void LOG_InfoUint(const char* message, uint32_t value);
 void LOG_Debug(const char* message);
 void LOG_Verbose(const char* message);
 void LOG_Raw(const char* str);

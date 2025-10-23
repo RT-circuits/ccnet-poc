@@ -28,9 +28,10 @@ void utils_memcpy(uint8_t* dest, const uint8_t* src, uint32_t length) {
 void utils_zero(uint8_t* array, uint32_t length) {
     for (uint32_t i = 0; i < length; i++) array[i] = 0;
 }
-/*********************************************
+/***********************************************************************     
  * String functions
- *********************************************/
+ * to allow all modules to run without snprintf if logging is disabled
+ ***********************************************************************/
 
 /* Convert uint32_t to decimal string */
 void utils_uint32_to_string(uint32_t value, char* buffer, uint32_t buffer_size) {

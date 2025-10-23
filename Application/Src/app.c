@@ -206,9 +206,6 @@ void APP_Init(void)
     /* ID003: We receive RX responses from bill validator */
     MESSAGE_Init(&upstream_msg, PROTO_CCNET, MSG_DIR_TX);
     MESSAGE_Init(&downstream_msg, PROTO_ID003, MSG_DIR_RX);
-    
-    /* Run all enabled tests */
-    TESTS_RunAll();
 
     /* Initialize NVM module - DISABLED FOR TESTING */
     NVM_Init();
@@ -218,7 +215,7 @@ void APP_Init(void)
     UART_Init(&if_downstream, &downstream_msg);
        
     
-    /* Initialize Configuration module */
+    /* Load configuration from Flash */
     CONFIG_Init();
 
     /* Display current settings */
@@ -226,6 +223,9 @@ void APP_Init(void)
     
     /* Initialize Button module */
     BTN_Init();
+
+    /* Run all tests that are enabled in tests.c */
+    TESTS_RunAll();
     
     /* Log application startup */
     LOG_Info("Application started");

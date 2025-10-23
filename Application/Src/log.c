@@ -72,7 +72,27 @@ void LOG_Info(const char* message)
         log_counter++;
     }
 }
-  
+
+/**
+  * @brief  Log info message with uint32_t value without using snprintf as a test. I do not add vsnprintf
+  * @param  message: Message string
+  * @param  value: uint32_t value to append
+  * @retval None
+  */
+void LOG_InfoUint(const char* message, uint32_t value)
+{
+    if (current_log_level >= LOG_LEVEL_INFO)
+    {
+        LOG_PrintHeader(LOG_LEVEL_INFO);
+        USB_TransmitString(message);
+        
+        char value_str[16];
+        utils_uint32_to_string(value, value_str, sizeof(value_str));
+        USB_TransmitString(value_str);
+        USB_TransmitString("\r\n");
+        log_counter++;
+    }
+}
 
 /**
   * @brief  Log error message
