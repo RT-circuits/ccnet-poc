@@ -17,6 +17,7 @@
 #include "crc_test.h"
 #include "usb_test.h"
 #include "uart_test.h"
+#include "msg_test.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -26,6 +27,7 @@
 #define ENABLE_USB_TESTS           0
 #define ENABLE_UART_TESTS          0
 #define ENABLE_CCTALK_TESTS        0
+#define ENABLE_MESSAGE_TESTS       1
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -58,6 +60,11 @@ void TESTS_RunAll(void)
 #if ENABLE_CCTALK_TESTS
     /* Run UART test sequence */
     UART_TEST_E();
+#endif
+
+#if ENABLE_MESSAGE_TESTS
+    /* Run message creation test */
+    MSG_TEST_CreateCCTalkMessage();
 #endif
 }
 
