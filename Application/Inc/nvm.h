@@ -62,6 +62,7 @@ typedef enum
 nvm_result_t NVM_Init(void);
 nvm_result_t NVM_ReadConfigData(uint8_t* data, uint32_t max_size, uint32_t* actual_size);
 nvm_result_t NVM_WriteConfigData(const uint8_t* data, uint32_t data_size);
+uint32_t NVM_GetCurrentSequenceNumber(void);
 
 /* Note: Generic flash functions (EraseFlashPage, WriteFlash, ReadFlash, EraseConfig) 
  *       are internal implementation details and not part of the public API */

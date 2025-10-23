@@ -94,6 +94,12 @@ void CONFIG_LoadFromNVM(void)
             /* Apply log level before logging success message */
             LOG_SetLevel(g_config.log_level);
             LOG_Info("Configuration loaded from flash successfully");
+            
+            /* Log the sequence number */
+            uint32_t sequence = NVM_GetCurrentSequenceNumber();
+            char sequence_msg[40];
+            utils_string_uint32_concat("Flash storage sequence: ", sequence, sequence_msg, sizeof(sequence_msg));
+            LOG_Info(sequence_msg);
         }
     }
     else

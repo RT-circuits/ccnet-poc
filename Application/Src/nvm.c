@@ -347,6 +347,22 @@ nvm_result_t NVM_WriteConfigData(const uint8_t* data, uint32_t data_size)
 }
 
 /**
+  * @brief  Get current sequence number from flash storage
+  * @retval Current sequence number (0 if no valid data found)
+  */
+uint32_t NVM_GetCurrentSequenceNumber(void)
+{
+    uint32_t bank1_sequence, bank2_sequence;
+    
+    /* Get sequence numbers from both banks */
+    bank1_sequence = NVM_GetSequenceNumber(FLASH_CONFIG_BANK1);
+    bank2_sequence = NVM_GetSequenceNumber(FLASH_CONFIG_BANK2);
+    
+    /* Return the higher sequence number (most recent data) */
+    return (bank1_sequence >= bank2_sequence) ? bank1_sequence : bank2_sequence;
+}
+
+/**
   * @brief  Erase all configuration data (private function)
   * @retval NVM operation result
   */
