@@ -37,7 +37,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart);
 uint8_t UART_CheckForUpstreamData(void);
 uint8_t UART_CheckForDownstreamData(void);
 void UART_Init(interface_config_t* interface, message_t* message);
-void UART_TransmitMessage(interface_config_t* interface, message_t* message);
+void UART_TransmitMessage(interface_config_t* interface, message_t* message, uint8_t use_dma, uint8_t* dma_buffer);
 
 #ifdef __cplusplus
 }

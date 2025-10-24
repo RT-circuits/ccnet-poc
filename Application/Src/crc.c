@@ -55,7 +55,7 @@ uint16_t CRC_Calculate(uint8_t* data, proto_name_t protocol, uint16_t length)
         case PROTO_ID003:
             return CRC_Calculate_CCITT(data, length);
         case PROTO_CCTALK:
-            return CRC_Calculate_CCTALK(data, length);
+            return CRC_ChecksumCctalk(data, length);
         default:
             return 0;
     }
@@ -153,8 +153,25 @@ static uint16_t CRC_Calculate_CCITT(uint8_t* data, uint16_t length)
   * @retval Calculated CRC value
   */
 //TODO: Implement CCTALK CRC
-static uint16_t CRC_Calculate_CCTALK(uint8_t* data, uint16_t length)
+uint8_t CRC_ChecksumCctalk(uint8_t* data, uint16_t length)
 {
-    return 0;
+    uint16_t sum = 0;
+    
+    /* Calculate sum of all data bytes */
+    for (uint16_t i = 0; i < length; i++)
+    {
+        sum += data[i];
+    }
+    
+    /* Return checksum that makes sum + checksum = 0 mod 256 */
+    uint8_t checksum = (uint8_t)(256 - (sum % 256));
+    
+    /* Handle edge case: if sum is already 0 mod 256, return 0 */
+    if (sum % 256 == 0)
+    {
+        return 0;
+    }
+    
+    return checksum;
 }
 

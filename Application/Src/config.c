@@ -163,7 +163,7 @@ static void CONFIG_SetPhy(interface_config_t* interface)
               break;
           case PROTO_CCTALK:
               interface->datalink.sync_length = 1;
-              interface->datalink.sync_byte1 = 0x50;
+              interface->datalink.sync_byte1 = g_config.downstream->datalink.cctalk_source_address;  /* response starts with source address */
               interface->datalink.sync_byte2 = 0x00;
               interface->datalink.length_offset = 5;
               interface->datalink.crc_length = 1;

@@ -17,6 +17,7 @@
 #include "crc.h"
 #include "utils.h"
 #include "proto.h"
+#include "config.h"
 
 /* Private defines -----------------------------------------------------------*/
 #define MESSAGE_MAX_DATA_LENGTH 250
@@ -155,12 +156,23 @@ static void MESSAGE_SetRaw(message_t* msg)
             break;
 
         case PROTO_CCTALK:
-            /* Header bytes */
-            //TODO: Implement CCTALK header bytes
-            header_length = 0;
-            break;
-    }  
-
+            /* dest | data len | source | data | checksum */
+            msg->raw[pos++] = g_config.downstream->datalink.cctalk_dest_address;
+            msg->raw[pos++] = msg->data_length;  
+            msg->raw[pos++] = g_config.downstream->datalink.cctalk_source_address;
+            msg->raw[pos++] = msg->opcode;
+            /* add data */
+            for (uint8_t i = 0; i < msg->data_length; i++)
+            {
+                msg->raw[pos++] = msg->data[i];
+            }
+            /* add checksum */
+            msg->raw[pos++] = CRC_ChecksumCctalk(msg->raw, pos);
+            msg->length = pos;
+            return; /* code below is for CCNET and ID003 only */
+    } /* switch */
+   
+    /* for CCNET and ID003: */
     /* Set length field */
     if (!skip_opcode)
     {
@@ -171,19 +183,16 @@ static void MESSAGE_SetRaw(message_t* msg)
         msg->raw[pos++] = header_length + 1 + msg->data_length + 2; /* header(2) + length + data + crc (no opcode) */
     }
     
-    /* Set opcode (skip for CCNET Bill Table response) */
+    /* Set opcode (skip for CCNET Bill Table response and others) */
     if (!skip_opcode)
     {
         msg->raw[pos++] = msg->opcode;
     }
     
     /* Add data */
-    if (msg->data_length > 0)
+    for (uint8_t i = 0; i < msg->data_length; i++)
     {
-        for (uint8_t i = 0; i < msg->data_length; i++)
-        {
-            msg->raw[pos++] = msg->data[i];
-        }
+        msg->raw[pos++] = msg->data[i];
     }
 
     /* Add CRC */
@@ -202,7 +211,6 @@ static void MESSAGE_SetRaw(message_t* msg)
 message_parse_result_t MESSAGE_Parse(message_t* msg)
 {
     uint16_t pos = 0;
-    uint8_t header_length = 0;
     uint8_t expected_length = 0;
     
     /* Validate input parameters */
@@ -212,38 +220,37 @@ message_parse_result_t MESSAGE_Parse(message_t* msg)
     }
     
     /* Detect protocol and validate header */
-    if (msg->length >= 2 && msg->raw[0] == 0x02 && msg->raw[1] == 0x03)
+    /* detect cctalk pattern: src|length|dest */
+    if (msg->length >= 4 && msg->raw[0] == g_config.downstream->datalink.cctalk_source_address && 
+        msg->raw[1] == msg->length -5 && msg->raw[2] == g_config.downstream->datalink.cctalk_dest_address)
+    {
+        msg->protocol = PROTO_CCTALK;
+        expected_length = msg->raw[1] + 5;
+        pos = 3; /* opcode is at position 3 */
+    }
+    else if (msg->length >= 2 && msg->raw[0] == 0x02 && msg->raw[1] == 0x03)
     {
         msg->protocol = PROTO_CCNET;
-        header_length = 2;
-        pos = 2;
+        expected_length = msg->raw[2];
+        pos = 3;
     }
     else if (msg->length >= 1 && msg->raw[0] == 0xFC)
     {
         msg->protocol = PROTO_ID003;
-        header_length = 1;
-        pos = 1;
+        expected_length = msg->raw[1];
+        pos = 2;
     }
     else
     {
         return MSG_INVALID_HEADER;
     }
-    
-    /* Check minimum message length */
-    if (msg->length < header_length + 3) /* header + length + opcode + CRC */
-    {
-        return MSG_INVALID_LENGTH;
-    }
-    
-    /* Extract length field */
-    expected_length = msg->raw[pos++];
-    
+
     /* Validate length field */
     if (expected_length != msg->length)
     {
         return MSG_INVALID_LENGTH;
     }
-    
+
     /* Extract opcode */
     msg->opcode = msg->raw[pos++];
     
@@ -257,7 +264,7 @@ message_parse_result_t MESSAGE_Parse(message_t* msg)
     }
     
     /* Calculate data length */
-    uint16_t crc_length = 2; /* CRC is 2 bytes */
+    uint16_t crc_length = if_downstream.datalink.crc_length;
     if (pos + crc_length > msg->length)
     {
         return MSG_INVALID_LENGTH;
@@ -427,6 +434,32 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
             }
         }
     }
+    else if (msg->protocol == PROTO_CCTALK)
+    {
+        if (msg->direction == MSG_DIR_TX)
+        {
+            switch (msg->opcode)
+            {
+                case 254: return "Simple Poll";
+                case 242: return "Request SerialNumber";
+                case 231: return "Modify InhibitStatus";
+                case 157: return "Request Bill Id";
+                case 159: return "Read Buffered Bill Events";
+                case 154: return "Route Bill";
+                default: return "...";
+            }
+        }
+        else 
+        {
+            uint8_t opcode = msg->raw[3];
+            switch (opcode)
+            {
+                case 0: return "ccTalk_ACK";
+                default: return "ccTalk ...";
+            }
+
+        }
+    } /* PROTO_CCTALK */
     
     return "UNKNOWN_PROTOCOL";
 }
@@ -438,116 +471,132 @@ const char* MESSAGE_GetOpcodeASCII(const message_t* msg)
   */
 message_parse_result_t MESSAGE_ValidateOpcode(message_t* msg)
 {
-    if (msg->protocol == PROTO_CCNET)
+    switch (msg->protocol)
     {
-        if (msg->direction == MSG_DIR_TX)
-        {
-            /* CCNET Transmit Commands */
+        case PROTO_CCNET:
+            if (msg->direction == MSG_DIR_TX)
+            {
+                /* CCNET Transmit Commands */
+                switch (msg->opcode)
+                {
+                    case 0x00: /* CCNET_ACK */
+                    case 0xFF: /* CCNET_NAK */
+                    case 0x30: /* CCNET_RESET */
+                    case 0x31: /* CCNET_STATUS_REQUEST */
+                    case 0x32: /* CCNET_SET_SECURITY */
+                    case 0x33: /* CCNET_POLL */
+                    case 0x34: /* CCNET_ENABLE_BILL_TYPES */
+                    case 0x35: /* CCNET_STACK */
+                    case 0x36: /* CCNET_RETURN */
+                    case 0x37: /* CCNET_IDENTIFICATION */
+                    case 0x38: /* CCNET_HOLD */
+                    case 0x39: /* CCNET_SET_BAR_PARAMETERS */
+                    case 0x41: /* CCNET_BILL_TABLE */
+                    case 0x60: /* CCNET_REQUEST_STATISTICS */
+                        return MSG_OK;
+                    default:
+                        return MSG_UNKNOWN_OPCODE;
+                }
+            }
+            else
+            {
+                /* CCNET Receive Status Responses */
+                switch (msg->opcode)
+                {
+                    case 0x10: /* CCNET_STATUS_POWER_UP */
+                    case 0x11: /* CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR */
+                    case 0x12: /* CCNET_STATUS_POWER_UP_BILL_IN_STACKER */
+                    case 0x13: /* CCNET_STATUS_INITIALIZE */
+                    case 0x14: /* CCNET_STATUS_IDLING */
+                    case 0x15: /* CCNET_STATUS_ACCEPTING */
+                    case 0x17: /* CCNET_STATUS_STACKING */
+                    case 0x18: /* CCNET_STATUS_RETURNING */
+                    case 0x19: /* CCNET_STATUS_UNIT_DISABLED */
+                    case 0x1A: /* CCNET_STATUS_HOLDING */
+                    case 0x1B: /* CCNET_STATUS_DEVICE_BUSY */
+                    case 0x1C: /* CCNET_STATUS_REJECTING */
+                    case 0x41: /* CCNET_STATUS_DROP_CASSETTE_FULL */
+                    case 0x42: /* CCNET_STATUS_DROP_CASSETTE_OUT_POSITION */
+                    case 0x43: /* CCNET_STATUS_VALIDATOR_JAMMED */
+                    case 0x44: /* CCNET_STATUS_DROP_CASSETTE_JAMMED */
+                    case 0x45: /* CCNET_STATUS_CHEATED */
+                    case 0x46: /* CCNET_STATUS_PAUSE */
+                    case 0x47: /* CCNET_STATUS_MOTOR_FAILURE */
+                    case 0x80: /* CCNET_STATUS_ESCROW_POSITION */
+                    case 0x81: /* CCNET_STATUS_BILL_STACKED */
+                    case 0x82: /* CCNET_STATUS_BILL_RETURNED */
+                        return MSG_OK;
+                    default:
+                        return MSG_UNKNOWN_OPCODE;
+                }
+            }
+            break;
+
+        case PROTO_ID003:
+            if (msg->direction == MSG_DIR_TX)
+            {
+                /* ID003 Transmit Commands */
+                switch (msg->opcode)
+                {
+                    case 0x11: /* ID003_STATUS_REQ */
+                    case 0x40: /* ID003_RESET */
+                    case 0x41: /* ID003_STACK_1 */
+                    case 0x42: /* ID003_STACK_2 */
+                    case 0x43: /* ID003_RETURN */
+                    case 0x44: /* ID003_HOLD */
+                    case 0x45: /* ID003_WAIT */
+                    case 0xC0: /* ID003_ENABLE */
+                    case 0xC1: /* ID003_SECURITY */
+                    case 0xC2: /* ID003_COMM_MODE */
+                    case 0xC3: /* ID003_INHIBIT */
+                    case 0xC4: /* ID003_DIRECTION */
+                    case 0xC5: /* ID003_OPT_FUNC */
+                    case 0x80: /* ID003_ENABLE_REQ */
+                    case 0x81: /* ID003_SECURITY_REQ */
+                    case 0x82: /* ID003_COMM_MODE_REQ */
+                    case 0x83: /* ID003_INHIBIT_REQ */
+                    case 0x84: /* ID003_DIRECTION_REQ */
+                    case 0x85: /* ID003_OPT_FUNC_REQ */
+                    case 0x88: /* ID003_VERSION_REQ */
+                    case 0x89: /* ID003_BOOT_VERSION_REQ */
+                    case 0x8A: /* ID003_CURRENCY_ASSIGN_REQ */
+                    case 0x91: /* ID003_SERIAL_NUMBER_REQ */
+                        return MSG_OK;
+                    default:
+                        return MSG_UNKNOWN_OPCODE;
+                }
+            }
+            else    // direction is RX
+            {
+                /* ID003 Receive Status Responses */
+                if (PROTO_IsId003StatusCode(msg->opcode)) {
+                    return MSG_OK;
+                }
+                /* check for ID003 echo*/
+                uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A, 0x91};
+                if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
+                    return MSG_OK;
+                }
+                /* check ACK */
+                if (msg->opcode == 0x50) {
+                    return MSG_OK;
+                }
+            }
+            break;
+
+        case PROTO_CCTALK:
+            /* CCTALK opcode validation */
             switch (msg->opcode)
             {
-                case 0x00: /* CCNET_ACK */
-                case 0xFF: /* CCNET_NAK */
-                case 0x30: /* CCNET_RESET */
-                case 0x31: /* CCNET_STATUS_REQUEST */
-                case 0x32: /* CCNET_SET_SECURITY */
-                case 0x33: /* CCNET_POLL */
-                case 0x34: /* CCNET_ENABLE_BILL_TYPES */
-                case 0x35: /* CCNET_STACK */
-                case 0x36: /* CCNET_RETURN */
-                case 0x37: /* CCNET_IDENTIFICATION */
-                case 0x38: /* CCNET_HOLD */
-                case 0x39: /* CCNET_SET_BAR_PARAMETERS */
-                case 0x41: /* CCNET_BILL_TABLE */
-                case 0x60: /* CCNET_REQUEST_STATISTICS */
+                case 0:   /* ccTalk_ACK */
                     return MSG_OK;
                 default:
                     return MSG_UNKNOWN_OPCODE;
             }
-        }
-        else
-        {
-            /* CCNET Receive Status Responses */
-            switch (msg->opcode)
-            {
-                case 0x10: /* CCNET_STATUS_POWER_UP */
-                case 0x11: /* CCNET_STATUS_POWER_UP_BILL_IN_VALIDATOR */
-                case 0x12: /* CCNET_STATUS_POWER_UP_BILL_IN_STACKER */
-                case 0x13: /* CCNET_STATUS_INITIALIZE */
-                case 0x14: /* CCNET_STATUS_IDLING */
-                case 0x15: /* CCNET_STATUS_ACCEPTING */
-                case 0x17: /* CCNET_STATUS_STACKING */
-                case 0x18: /* CCNET_STATUS_RETURNING */
-                case 0x19: /* CCNET_STATUS_UNIT_DISABLED */
-                case 0x1A: /* CCNET_STATUS_HOLDING */
-                case 0x1B: /* CCNET_STATUS_DEVICE_BUSY */
-                case 0x1C: /* CCNET_STATUS_REJECTING */
-                case 0x41: /* CCNET_STATUS_DROP_CASSETTE_FULL */
-                case 0x42: /* CCNET_STATUS_DROP_CASSETTE_OUT_POSITION */
-                case 0x43: /* CCNET_STATUS_VALIDATOR_JAMMED */
-                case 0x44: /* CCNET_STATUS_DROP_CASSETTE_JAMMED */
-                case 0x45: /* CCNET_STATUS_CHEATED */
-                case 0x46: /* CCNET_STATUS_PAUSE */
-                case 0x47: /* CCNET_STATUS_MOTOR_FAILURE */
-                case 0x80: /* CCNET_STATUS_ESCROW_POSITION */
-                case 0x81: /* CCNET_STATUS_BILL_STACKED */
-                case 0x82: /* CCNET_STATUS_BILL_RETURNED */
-                    return MSG_OK;
-                default:
-                    return MSG_UNKNOWN_OPCODE;
-            }
-        }
-    }
-    else if (msg->protocol == PROTO_ID003)
-    {
-        if (msg->direction == MSG_DIR_TX)
-        {
-            /* ID003 Transmit Commands */
-            switch (msg->opcode)
-            {
-                case 0x11: /* ID003_STATUS_REQ */
-                case 0x40: /* ID003_RESET */
-                case 0x41: /* ID003_STACK_1 */
-                case 0x42: /* ID003_STACK_2 */
-                case 0x43: /* ID003_RETURN */
-                case 0x44: /* ID003_HOLD */
-                case 0x45: /* ID003_WAIT */
-                case 0xC0: /* ID003_ENABLE */
-                case 0xC1: /* ID003_SECURITY */
-                case 0xC2: /* ID003_COMM_MODE */
-                case 0xC3: /* ID003_INHIBIT */
-                case 0xC4: /* ID003_DIRECTION */
-                case 0xC5: /* ID003_OPT_FUNC */
-                case 0x80: /* ID003_ENABLE_REQ */
-                case 0x81: /* ID003_SECURITY_REQ */
-                case 0x82: /* ID003_COMM_MODE_REQ */
-                case 0x83: /* ID003_INHIBIT_REQ */
-                case 0x84: /* ID003_DIRECTION_REQ */
-                case 0x85: /* ID003_OPT_FUNC_REQ */
-                case 0x88: /* ID003_VERSION_REQ */
-                case 0x89: /* ID003_BOOT_VERSION_REQ */
-                case 0x8A: /* ID003_CURRENCY_ASSIGN_REQ */
-                case 0x91: /* ID003_SERIAL_NUMBER_REQ */
-                    return MSG_OK;
-                default:
-                    return MSG_UNKNOWN_OPCODE;
-            }
-        }
-        else    // direction is RX
-        {
-            /* ID003 Receive Status Responses */
-            if (PROTO_IsId003StatusCode(msg->opcode)) {
-                return MSG_OK;
-            }
-            /* check for ID003 echo*/
-            uint8_t echo_cmds[] = {0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x88, 0x89, 0x8A, 0x91};
-            if (utils_is_member(msg->opcode, echo_cmds, sizeof(echo_cmds))) {
-                return MSG_OK;
-            }
-            /* check ACK */
-            if (msg->opcode == 0x50) {
-                return MSG_OK;
-            }
-        }
+            break;
+
+        default:
+            return MSG_UNKNOWN_OPCODE;
     }
     return MSG_UNKNOWN_OPCODE;
 }

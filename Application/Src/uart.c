@@ -49,9 +49,10 @@ typedef struct {
     message_t* message;            /* Message structure to populate */
 } UART_Interface_t;
 
-/* Global instances for the two UART interfaces */
+/* Global instances for the UART interfaces */
 UART_Interface_t uart_intf1;
 UART_Interface_t uart_intf2;
+UART_Interface_t uart_intf3;
 
 /* Exported variables --------------------------------------------------------*/
 uint8_t downstream_rx_flag = 0;
@@ -74,6 +75,9 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
     } else if (huart == uart_intf2.huart) { /* Downstream */
         intf = &uart_intf2;
         datalink = if_downstream.datalink;
+    } else if (huart == uart_intf3.huart) { /* CCTALK */
+        intf = &uart_intf3;
+        datalink = if_downstream.datalink;
     }
     if (intf == NULL) return;
     /* set datalink parameters in context */
@@ -91,6 +95,17 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
         intf->rx_index = 0;
     }
     intf->last_tick = current_tick;
+
+    /* Handle CCTALK echo bytes - ignore transmitted bytes */
+    if (intf->interface->protocol == PROTO_CCTALK && datalink.cctalk_echo_byte_count > 0) {
+
+        datalink.cctalk_echo_byte_count--;
+        intf->interface->datalink.cctalk_echo_byte_count = datalink.cctalk_echo_byte_count;
+
+		/* Restart reception for next byte */
+		HAL_UART_Receive_IT(huart, &intf->rx_byte, 1);
+        return; /* Ignore this byte */
+    }
 
     uint8_t byte = intf->rx_byte;
 
@@ -127,7 +142,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
         break;
 
     case UART_STATE_WAIT_LENGTH:
-        intf->length = byte + intf->interface->datalink.length_offset;
+        intf->length = byte + intf->interface->datalink.length_offset;  /* offset is +5 for ccTalk*/
 
         intf->rx_buffer[intf->rx_index++] = byte;
         
@@ -183,6 +198,7 @@ void UART_RxCpltCallback(UART_HandleTypeDef *huart)
             intf->rx_index = 0;
         }
         break;
+
     }
 
     /* Restart reception for next byte */
@@ -215,6 +231,14 @@ uint8_t UART_CheckForDownstreamData(void)
         LOG_Debug("UART2 data received");
         return 1; /* Data ready */
     }
+    
+    /* Process CCTALK messages */
+    if (uart_intf3.data_ready) {
+        uart_intf3.data_ready = 0;
+        LOG_Debug("UART3 CCTALK data received");
+        return 1; /* Data ready */
+    }
+    
     return 0; /* No data */
 }
 
@@ -233,6 +257,8 @@ void UART_Init(interface_config_t* interface, message_t* message)
         intf = &uart_intf1;
     } else if (interface->phy.uart_handle == &huart2) {
         intf = &uart_intf2;
+    } else if (interface->phy.uart_handle == &huart3) {
+        intf = &uart_intf3;
     }
     
     if (intf == NULL) return;
@@ -275,7 +301,7 @@ void UART_Init(interface_config_t* interface, message_t* message)
   * @param  message: Message structure containing raw data to transmit
   * @retval None
   */
-void UART_TransmitMessage(interface_config_t* interface, message_t* message)
+void UART_TransmitMessage(interface_config_t* interface, message_t* message, uint8_t use_dma, uint8_t* dma_buffer)
 {
     if (interface == NULL || message == NULL) {
         LOG_Error("UART_TransmitMessage: Invalid parameters");
@@ -292,15 +318,37 @@ void UART_TransmitMessage(interface_config_t* interface, message_t* message)
         return;
     }
 
-    /* Transmit raw message data */
-    uint32_t timeout_ms = message->length + 50;  /* transmission at 9600 about 1 byte per s. Longest message is 125 bytes and takes 132ms on scope*/
-    HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, timeout_ms);
+    /* For CCTALK protocol, set echo byte count to ignore transmitted bytes */
+    if (interface->protocol == PROTO_CCTALK) {
+        interface->datalink.cctalk_echo_byte_count = message->length;
+    }
+    
+    if (!use_dma) {
+        /* Transmit raw message data using blocking mode */
+        uint32_t timeout_ms = message->length + 50;  /* transmission at 9600 about 1 byte per s. Longest message is 125 bytes and takes 132ms on scope*/
+        HAL_StatusTypeDef status = HAL_UART_Transmit(interface->phy.uart_handle, message->raw, message->length, timeout_ms);
 
-    if (status != HAL_OK) {
-    	if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
-    	else LOG_Error("UART_TransmitMessage: Transmission failed");
+        if (status != HAL_OK) {
+            if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
+            else LOG_Error("UART_TransmitMessage: Transmission failed");
+        } else {
+            LOG_Debug("uart: UART_TransmitMessage: OK");
+        }
     } else {
-        LOG_Debug("uart: UART_TransmitMessage: OK");
+        /* Transmit using DMA mode */
+        if (dma_buffer == NULL) {
+            LOG_Error("UART_TransmitMessage: DMA buffer is NULL");
+            return;
+        }
+        utils_memcpy(dma_buffer, message->raw, message->length);
+        HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(interface->phy.uart_handle, dma_buffer, message->length);
+
+        if (status != HAL_OK) {
+            if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: DMA Transmission failed - HAL BUSY");
+            else LOG_Error("UART_TransmitMessage: DMA Transmission failed");
+        } else {
+            LOG_Debug("uart: UART_TransmitMessage: DMA OK");
+        }
     }
 }
 

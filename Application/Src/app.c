@@ -207,7 +207,7 @@ void APP_Init(void)
     MESSAGE_Init(&upstream_msg, PROTO_CCNET, MSG_DIR_TX);
     MESSAGE_Init(&downstream_msg, PROTO_ID003, MSG_DIR_RX);
 
-    /* Initialize NVM module - DISABLED FOR TESTING */
+    /* Initialize NVM module */
     NVM_Init();
     
     /* Initialize UARTs with message structures */
@@ -217,6 +217,9 @@ void APP_Init(void)
     
     /* Load configuration from Flash */
     CONFIG_Init();
+
+    /* for test cctalk interface*/
+    UART_Init(&if_downstream, &downstream_msg);
 
     /* Display current settings */
     CONFIGUI_ShowConfiguration();
@@ -272,6 +275,7 @@ void APP_Process(void)
     /* Check for downstream message */
     if ((msg_received_status = APP_CheckForDownstreamMessage()) != MSG_NO_MESSAGE)
     {
+        LOG_Debug("APP_CheckForDownstreamMessage True");
         /* Update state on first message */
         if (ds_context.state == DS_NOT_CONNECTED)
         {
@@ -833,23 +837,7 @@ static void APP_SendMessage(interface_config_t* interface, uint8_t opcode, uint8
     LOG_Proto(&tx_msg);
 
     /* transmit message */
-    if (!use_dma)
-    {
-        UART_TransmitMessage(interface, &tx_msg);
-    }
-    else
-    {
-        /* Transmit raw message data */
-        utils_memcpy(dma_tx_buffer, tx_msg.raw, tx_msg.length);
-        HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(interface->phy.uart_handle, dma_tx_buffer, tx_msg.length);
-
-        if (status != HAL_OK) {
-            if (status == HAL_BUSY) LOG_Error("UART_TransmitMessage: Transmission failed - HAL BUSY");
-            else LOG_Error("UART_TransmitMessage: Transmission failed");
-        } else {
-            LOG_Debug("app.c: uart tx using dma OK");
-        }
-    }
+    UART_TransmitMessage(interface, &tx_msg, use_dma, dma_tx_buffer);
     
 
 }
@@ -865,7 +853,8 @@ static void APP_DownstreamStartup(void)
     {
         case DS_NOT_STARTED:
             /* Send out first poll request */
-            REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
+            if (if_downstream.protocol == PROTO_ID003) REQUEST_DMA(ID003_STATUS_REQ, NULL, 0);
+            if (if_downstream.protocol == PROTO_CCTALK) REQUEST_DMA(CCTALK_SIMPLE_POLL, NULL, 0);
             if (HAL_GetTick() - ds_context.last_req_time > 5000)
             {
                 LOG_Warn("MCU startup sequence: waiting for downstream validator response");
@@ -879,6 +868,7 @@ static void APP_DownstreamStartup(void)
             if (APP_WaitForDownstreamMessage(200) == MSG_OK)
             {
                 ds_context.startup = DS_FIRST_POLL_RECEIVED_OK;
+                LOG_Debug("DS_FIRST_POLL_RECEIVED_OK");
             }
             else
             	ds_context.startup = DS_NOT_STARTED;

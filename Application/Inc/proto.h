@@ -99,6 +99,17 @@ typedef struct message_t message_t;
 #define ID003_STATUS_INVALID_COMMAND               0x4B
 
 //###########################################################################################
+//# CCTALK Transmit: Opcodes
+//###########################################################################################
+/* ID003 Status Responses */
+#define CCTALK_SIMPLE_POLL                    254
+#define CCTALK_REQUEST_SERIAL_NUMBER          242
+#define CCTALK_MODIFY_INHIBIT_STATUS          231
+#define CCTALK_REQUEST_BILL_ID                157
+#define CCTALK_READ_BUFFERED_BILL_EVENTS      159
+#define CCTALK_ROUTE_BILL                      154
+
+//###########################################################################################
 //# CCNET Transmit: Opcodes
 //###########################################################################################
 /* CCNET Commands */

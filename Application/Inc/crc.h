@@ -68,6 +68,7 @@ typedef struct
 uint16_t CRC_Calculate(uint8_t* data, proto_name_t protocol, uint16_t length);
 uint16_t CRC_AppendCRC(message_t* msg, uint16_t pos);
 crc_result_t CRC_Validate(message_t* msg);
+uint8_t CRC_ChecksumCctalk(uint8_t* data, uint16_t length);
 
 #ifdef __cplusplus
 }
